@@ -5,6 +5,7 @@ pyarrow>=14.0
 
 # APIs
 requests>=2.31
+python-dotenv>=1.0
 earthengine-api>=0.1.390
 openmeteo-requests>=1.2
 
