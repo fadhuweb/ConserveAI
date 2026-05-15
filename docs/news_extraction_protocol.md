@@ -136,3 +136,27 @@ thesis Methods section for full justification.
 This outcome is consistent with the risk note in the Implementation Plan:
 "If Yankari has zero drought or vegetation incidents in the news, that is a
 finding worth reporting in the discussion."
+
+---
+
+## Extraction Findings — All Other Parks (2020-2025)
+
+Searches were extended to all five remaining parks on 2026-05-15 using the
+same sources and keyword patterns adapted per park (e.g., "drought Cross River
+National Park", "encroachment Gashaka-Gumti", "vegetation loss Kainji Lake",
+"desertification Chad Basin", "grazing Old Oyo").
+
+**Result across all five parks:** Zero dateable incidents recovered for drought
+or vegetation degradation in any park for 2020-2025. English-language Nigerian
+news coverage of ecological conditions inside specific national parks is
+consistently absent at the incident level required for labeling.
+
+**Total incidents.csv entries:** 0 across all six parks.
+
+**Finding for thesis discussion:** The absence of usable news-derived labels
+across all six parks is itself a meaningful finding. It reflects a gap in
+ecological monitoring and public reporting infrastructure for Nigerian protected
+areas, rather than an absence of threats. Algorithmically derived labels were
+used for all parks as documented above. Future work should incorporate field
+ranger reports and remote sensing anomaly detection as primary label sources
+rather than news archives.
