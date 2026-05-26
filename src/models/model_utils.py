@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import minimize_scalar
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import fbeta_score
@@ -51,12 +52,37 @@ def prep_arrays(df: pd.DataFrame, imputer: SimpleImputer | None = None):
     return X_arr, Y, imputer
 
 
+def _fit_temperature(val_probs: np.ndarray, val_labels: np.ndarray) -> float:
+    """Find temperature T that minimises NLL on validation probabilities.
+
+    Temperature scaling divides logits by T before the sigmoid.  T is always
+    positive so it can only stretch or compress probabilities — it cannot
+    invert the signal, unlike Platt scaling with a negative coefficient.
+    """
+    p = np.clip(val_probs, 1e-7, 1 - 1e-7)
+    logits = np.log(p / (1 - p))
+    y = val_labels.astype(float)
+
+    def nll(T):
+        p_scaled = np.clip(1 / (1 + np.exp(-logits / T)), 1e-7, 1 - 1e-7)
+        return -float(np.mean(y * np.log(p_scaled) + (1 - y) * np.log(1 - p_scaled)))
+
+    result = minimize_scalar(nll, bounds=(0.1, 10.0), method="bounded")
+    return float(result.x)
+
+
+def _apply_temperature(probs: np.ndarray, T: float) -> np.ndarray:
+    p = np.clip(probs, 1e-7, 1 - 1e-7)
+    logits = np.log(p / (1 - p))
+    return (1 / (1 + np.exp(-logits / T))).astype(np.float32)
+
+
 def fit_platt_scalers(val_probs: np.ndarray, val_labels: np.ndarray) -> list:
     """Fit one LogisticRegression calibrator per threat on validation probabilities.
 
-    If the fitted coefficient is negative (scaler inverts the signal — val/train
-    distribution mismatch), mark the scaler as a passthrough by setting coef_ to None.
-    This preserves raw probabilities for that threat rather than applying a bad calibration.
+    If the fitted coefficient is negative (signal inversion due to val/train
+    distribution mismatch), falls back to temperature scaling, which can only
+    stretch or compress probabilities and cannot invert them.
     """
     scalers = []
     for i in range(val_labels.shape[1]):
@@ -65,11 +91,14 @@ def fit_platt_scalers(val_probs: np.ndarray, val_labels: np.ndarray) -> list:
         valid = ~np.isnan(yt)
         lr.fit(val_probs[valid, i].reshape(-1, 1), yt[valid].astype(int))
         if lr.coef_[0][0] <= 0:
+            T = _fit_temperature(val_probs[valid, i], yt[valid])
             print(f"  [calibration] threat {i}: negative Platt coef ({lr.coef_[0][0]:.4f}), "
-                  f"using raw probabilities")
+                  f"falling back to temperature scaling (T={T:.4f})")
             lr._passthrough = True
+            lr._temperature = T
         else:
             lr._passthrough = False
+            lr._temperature = None
         scalers.append(lr)
     return scalers
 
@@ -78,7 +107,8 @@ def apply_platt(raw_probs: np.ndarray, scalers: list) -> np.ndarray:
     cal = raw_probs.copy()
     for i, lr in enumerate(scalers):
         if getattr(lr, "_passthrough", False):
-            cal[:, i] = raw_probs[:, i]
+            T = getattr(lr, "_temperature", None)
+            cal[:, i] = _apply_temperature(raw_probs[:, i], T) if T is not None else raw_probs[:, i]
         else:
             cal[:, i] = lr.predict_proba(raw_probs[:, i].reshape(-1, 1))[:, 1]
     return cal

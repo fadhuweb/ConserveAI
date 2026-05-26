@@ -1,0 +1,14 @@
+{
+  "seq_len": 30,
+  "d_model": 64,
+  "nhead": 4,
+  "num_layers": 2,
+  "dim_feedforward": 128,
+  "dropout": 0.1,
+  "lr": 0.0001,
+  "weight_decay": 0.001,
+  "batch_size": 128,
+  "max_epochs": 100,
+  "es_patience": 15,
+  "es_min_delta": 0.0001
+}
