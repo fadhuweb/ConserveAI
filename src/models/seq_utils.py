@@ -118,6 +118,54 @@ def build_sequence_splits(
     )
 
 
+def build_unlabeled_sequences(
+    path: Path = DATA_PATH,
+    seq_len: int = SEQ_LEN,
+    imputer: SimpleImputer | None = None,
+) -> np.ndarray:
+    """Build sequences for the unlabeled pool used in FixMatch training.
+
+    Unlabeled pool = training-period rows with ndvi_missing==1.  These rows
+    are excluded from supervised training but their feature windows are usable
+    for semi-supervised consistency training.
+
+    Args:
+        imputer: fitted SimpleImputer from build_sequence_splits(); if None a
+                 new one is fitted (not recommended — share the supervised one).
+
+    Returns:
+        X_ul  — (N_ul, seq_len, n_features)  float32  (shape[0]==0 if pool is empty)
+    """
+    df = _load_full(path)
+    if imputer is None:
+        imputer = _fit_imputer(df)
+
+    X_all     = imputer.transform(df[FEATURE_COLS]).astype(np.float32)
+    split_col = df["split"].values
+    ndvi_miss = df["ndvi_missing"].values
+    park_col  = df["park"].values
+
+    xs = []
+    for park in np.unique(park_col):
+        mask = park_col == park
+        idx  = np.where(mask)[0]
+
+        for local_i in range(seq_len - 1, len(idx)):
+            global_i = idx[local_i]
+            if split_col[global_i] != "train" or ndvi_miss[global_i] == 0:
+                continue
+            window = X_all[idx[local_i - seq_len + 1 : local_i + 1]]
+            xs.append(window)
+
+    if len(xs) == 0:
+        print("  [unlabeled] No ndvi_missing==1 sequences in train split — pool is empty.")
+        return np.empty((0, seq_len, len(FEATURE_COLS)), dtype=np.float32)
+
+    X_ul = np.stack(xs).astype(np.float32)
+    print(f"  [unlabeled] {len(X_ul)} sequences in unlabeled pool (ndvi_missing==1, split==train)")
+    return X_ul
+
+
 def compute_pos_weights(Y_train: np.ndarray) -> np.ndarray:
     """Return pos_weight per threat for weighted BCE loss.
 

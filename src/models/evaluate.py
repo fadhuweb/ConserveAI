@@ -2,12 +2,15 @@
 
 import numpy as np
 from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    brier_score_loss,
+    classification_report,
+    confusion_matrix,
+    fbeta_score,
     precision_score,
     recall_score,
-    fbeta_score,
-    brier_score_loss,
     roc_auc_score,
-    average_precision_score,
 )
 
 
@@ -46,6 +49,18 @@ def compute_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float = 0
     else:
         metrics["roc_auc"] = float("nan")
         metrics["pr_auc"] = float("nan")
+
+    metrics["accuracy"] = float(accuracy_score(y_true, y_pred))
+
+    cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
+    tn, fp, fn, tp = cm.ravel()
+    metrics["confusion_matrix"] = {
+        "tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp),
+    }
+
+    metrics["classification_report"] = classification_report(
+        y_true, y_pred, output_dict=True, zero_division=0
+    )
 
     return metrics
 
