@@ -207,24 +207,30 @@ def recommend(
         for iid, units in allocation.items()
     )
 
-    # Risk reduction (post-process with cap)
+    # Risk reduction — multiplicative diminishing-returns model
+    catalog_map  = {inv.id: inv for inv in catalog}
     risk_reduction = {}
     for threat in THREAT_KEYS:
-        raw_eff  = sum(
-            next(i for i in catalog if i.id == iid).effectiveness.get(threat, 0.0) * units
-            for iid, units in allocation.items()
-        )
-        eff_cap  = min(1.0, raw_eff)
-        p_before = probs.get(threat, 0.0)
+        survival = 1.0
+        for iid, units in allocation.items():
+            if units <= 0 or iid not in catalog_map:
+                continue
+            eff = catalog_map[iid].effectiveness.get(threat, 0.0)
+            if eff > 0:
+                survival *= (1.0 - eff) ** units
+        effectiveness = round(1.0 - survival, 4)
+        p_before      = probs.get(threat, 0.0)
         risk_reduction[threat] = {
-            "prob_before":       round(p_before, 4),
-            "effectiveness":     round(eff_cap, 4),
-            "prob_after":        round(p_before * (1 - eff_cap), 4),
-            "risk_reduction":    round(p_before * eff_cap, 4),
-            "reduction_pct":     round(eff_cap * 100, 1),
+            "prob_before":    round(p_before, 4),
+            "effectiveness":  effectiveness,
+            "prob_after":     round(p_before * survival, 4),
+            "risk_reduction": round(p_before * effectiveness, 4),
+            "reduction_pct":  round(effectiveness * 100, 1),
         }
 
-    total_score = float(pulp.value(prob.objective) or 0.0)
+    # total_score derived from the multiplicative model so it matches
+    # the displayed risk_reduction values, not the linear ILP objective
+    total_score = round(sum(risk_reduction[t]["risk_reduction"] for t in THREAT_KEYS), 6)
 
     hint = None
     if status != "Optimal":

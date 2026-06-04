@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     conserveai
+      POSTGRES_PASSWORD: conserveai
+      POSTGRES_DB:       conserveai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://conserveai:conserveai@db:5432/conserveai
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-in-production}
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRY_HOURS: 8
+      ENVIRONMENT: production
+    ports:
+      - "8000:8000"
+
+volumes:
+  pg_data:

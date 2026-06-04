@@ -1,4 +1,21 @@
-"""Risk reduction utilities shared by the ILP recommender and baselines."""
+"""Risk reduction utilities shared by the ILP recommender and baselines.
+
+Effectiveness model
+-------------------
+Uses a multiplicative (diminishing-returns) model for post-processing:
+
+    survival = product of (1 - eff_i) ^ units_i   for all interventions i
+    overall_effectiveness = 1 - survival
+
+This means each additional unit reduces the *remaining* risk rather than
+a fixed absolute amount.  Example for water_truck (eff=0.18, 8 units):
+
+    survival = (1 - 0.18)^8 = 0.82^8 = 0.204
+    effectiveness = 1 - 0.204 = 79.6%   (not 144% → capped at 100%)
+
+The ILP objective remains linear (units × per-unit effectiveness) for
+tractability.  Only the displayed risk reduction numbers use this model.
+"""
 
 from typing import Dict
 
@@ -10,7 +27,7 @@ def compute_risk_reduction(
     probs: Dict[str, float],
     catalog_by_id: Dict[str, Intervention] = CATALOG_BY_ID,
 ) -> Dict[str, Dict]:
-    """Return per-threat risk reduction metrics for a given allocation.
+    """Return per-threat risk reduction using a diminishing-returns model.
 
     Args:
         allocation:    {intervention_id: units}
@@ -23,19 +40,25 @@ def compute_risk_reduction(
     """
     result = {}
     for threat in THREAT_KEYS:
-        raw_eff = sum(
-            catalog_by_id[iid].effectiveness.get(threat, 0.0) * units
-            for iid, units in allocation.items()
-            if iid in catalog_by_id
-        )
-        eff_cap  = min(1.0, raw_eff)
-        p_before = probs.get(threat, 0.0)
+        # Multiplicative survival: each intervention independently reduces
+        # the remaining risk fraction
+        survival = 1.0
+        for iid, units in allocation.items():
+            if iid not in catalog_by_id or units <= 0:
+                continue
+            eff_per_unit = catalog_by_id[iid].effectiveness.get(threat, 0.0)
+            if eff_per_unit > 0:
+                survival *= (1.0 - eff_per_unit) ** units
+
+        effectiveness = round(1.0 - survival, 4)
+        p_before      = probs.get(threat, 0.0)
+
         result[threat] = {
             "prob_before":    round(p_before, 4),
-            "effectiveness":  round(eff_cap, 4),
-            "prob_after":     round(p_before * (1 - eff_cap), 4),
-            "risk_reduction": round(p_before * eff_cap, 4),
-            "reduction_pct":  round(eff_cap * 100, 1),
+            "effectiveness":  effectiveness,
+            "prob_after":     round(p_before * survival, 4),
+            "risk_reduction": round(p_before * effectiveness, 4),
+            "reduction_pct":  round(effectiveness * 100, 1),
         }
     return result
 
@@ -45,7 +68,7 @@ def total_score(
     probs: Dict[str, float],
     catalog_by_id: Dict[str, Intervention] = CATALOG_BY_ID,
 ) -> float:
-    """Weighted sum of risk reductions across threats (ILP objective value)."""
+    """Weighted sum of risk reductions across threats."""
     rr = compute_risk_reduction(allocation, probs, catalog_by_id)
     return sum(rr[t]["risk_reduction"] for t in THREAT_KEYS)
 
@@ -56,13 +79,13 @@ def allocation_summary(
     catalog_by_id: Dict[str, Intervention] = CATALOG_BY_ID,
 ) -> Dict:
     """Full summary dict suitable for JSON serialisation."""
-    rr         = compute_risk_reduction(allocation, probs, catalog_by_id)
-    cost       = sum(
+    rr   = compute_risk_reduction(allocation, probs, catalog_by_id)
+    cost = sum(
         catalog_by_id[iid].cost * u
         for iid, u in allocation.items()
         if iid in catalog_by_id
     )
-    items      = [
+    items = [
         {
             "id":    iid,
             "name":  catalog_by_id[iid].name if iid in catalog_by_id else iid,
