@@ -10,7 +10,7 @@ from src.backend.schemas.auth import LoginRequest, TokenResponse
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, summary="Log in — sets JWT httpOnly cookie")
 def login(body: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == body.username).first()
     if not user or not verify_password(body.password, user.password_hash):
@@ -28,7 +28,7 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
     return TokenResponse(username=user.username, role=user.role, park_id=user.park_id)
 
 
-@router.post("/logout")
+@router.post("/logout", summary="Log out — clears the auth cookie")
 def logout(response: Response):
     response.delete_cookie("access_token")
     return {"message": "Logged out"}

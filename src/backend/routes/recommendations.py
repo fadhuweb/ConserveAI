@@ -71,7 +71,7 @@ def _latest_probs(park: str, db: Session) -> dict:
     return {"fire": row.fire_prob, "drought": row.drought_prob, "vegetation": row.veg_prob}
 
 
-@router.post("/recommend", response_model=RecommendResponse)
+@router.post("/recommend", response_model=RecommendResponse, summary="Budget-constrained ILP recommendation with zone allocation")
 def recommend_interventions(
     body: RecommendRequest,
     db: Session = Depends(get_db),
@@ -179,7 +179,7 @@ def recommend_interventions(
     )
 
 
-@router.get("/recommendations/{park}", response_model=List[RecommendationSummary])
+@router.get("/recommendations/{park}", response_model=List[RecommendationSummary], summary="Past recommendations for a park")
 def list_recommendations(
     park: str,
     limit: int = Query(default=20, ge=1, le=100),
@@ -208,7 +208,7 @@ def list_recommendations(
     ]
 
 
-@router.post("/sensitivity", response_model=SensitivityResponse)
+@router.post("/sensitivity", response_model=SensitivityResponse, summary="Sensitivity analysis on cost & effectiveness assumptions")
 def sensitivity_analysis(
     body: SensitivityRequest,
     db: Session = Depends(get_db),

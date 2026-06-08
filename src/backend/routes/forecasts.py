@@ -18,20 +18,20 @@ router = APIRouter(tags=["forecasts"])
 
 # ── Parks ─────────────────────────────────────────────────────────────────────
 
-@router.get("/parks", response_model=List[ParkMeta])
+@router.get("/parks", response_model=List[ParkMeta], summary="List all six parks with metadata")
 def list_parks(_: User = Depends(get_current_user)):
     """Return metadata for all six parks."""
     return [ParkMeta(id=k, **v) for k, v in PARKS_META.items()]
 
 
-@router.get("/parks/{park_id}", response_model=ParkMeta)
+@router.get("/parks/{park_id}", response_model=ParkMeta, summary="Get one park's metadata")
 def get_park(park_id: str, _: User = Depends(get_current_user)):
     if park_id not in PARKS_META:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown park: {park_id}")
     return ParkMeta(id=park_id, **PARKS_META[park_id])
 
 
-@router.get("/parks/{park_id}/zones", response_model=List[ZoneOut])
+@router.get("/parks/{park_id}/zones", response_model=List[ZoneOut], summary="List a park's four zones")
 def get_park_zones(
     park_id: str,
     db: Session = Depends(get_db),
@@ -45,7 +45,7 @@ def get_park_zones(
 
 # ── Intervention catalog ──────────────────────────────────────────────────────
 
-@router.get("/catalog", response_model=List[CatalogItem])
+@router.get("/catalog", response_model=List[CatalogItem], summary="Intervention catalog with costs & cited effectiveness")
 def get_catalog(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
@@ -56,7 +56,7 @@ def get_catalog(
 
 # ── Forecasts ─────────────────────────────────────────────────────────────────
 
-@router.get("/forecasts/{park}", response_model=List[ForecastOut])
+@router.get("/forecasts/{park}", response_model=List[ForecastOut], summary="Forecast history for a park (park-scoped)")
 def get_park_forecasts(
     park: str,
     days: int = Query(default=60, ge=1, le=365),
@@ -76,7 +76,7 @@ def get_park_forecasts(
     return rows
 
 
-@router.get("/forecasts/{park}/latest", response_model=ForecastOut)
+@router.get("/forecasts/{park}/latest", response_model=ForecastOut, summary="Most recent forecast for a park")
 def get_latest_forecast(
     park: str,
     db: Session = Depends(get_db),
@@ -97,7 +97,7 @@ def get_latest_forecast(
     return row
 
 
-@router.get("/national-overview", response_model=List[ParkOverview])
+@router.get("/national-overview", response_model=List[ParkOverview], summary="Latest forecast for all parks (admin only)")
 def national_overview(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),

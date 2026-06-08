@@ -32,10 +32,31 @@ async def lifespan(app: FastAPI):
     logger.info("ConserveAI backend shut down.")
 
 
+tags_metadata = [
+    {"name": "auth", "description": "Login / logout. Login returns a JWT in an httpOnly cookie used by all other endpoints."},
+    {"name": "forecasts", "description": "Park metadata, zones, the intervention catalog, and daily 30-day threat forecasts (park-scoped)."},
+    {"name": "recommendations", "description": "Budget-constrained ILP intervention recommender with zone-level allocation and sensitivity analysis."},
+    {"name": "system", "description": "Health check."},
+]
+
 app = FastAPI(
     title="ConserveAI API",
-    description="Wildlife threat forecasting and intervention recommendation for Nigerian national parks.",
+    description=(
+        "Multi-threat probabilistic forecasting and budget-constrained intervention "
+        "recommendation for six Nigerian national parks.\n\n"
+        "**How to try this API**\n"
+        "1. Call `POST /auth/login` with a demo account below — the JWT is stored as an httpOnly cookie automatically.\n"
+        "2. Then call any forecast or recommendation endpoint.\n\n"
+        "**Demo accounts**\n"
+        "| Username | Password | Role | Scope |\n"
+        "|----------|----------|------|-------|\n"
+        "| `manager_yankari` | `conserve2025` | manager | Yankari only |\n"
+        "| `admin` | `admin2025` | admin | all parks + national overview |\n\n"
+        "Other park managers follow the pattern `manager_<park>` "
+        "(cross_river, gashaka_gumti, kainji_lake, chad_basin, old_oyo)."
+    ),
     version="1.0.0",
+    openapi_tags=tags_metadata,
     lifespan=lifespan,
 )
 
@@ -52,7 +73,7 @@ app.include_router(forecasts_router)
 app.include_router(recommendations_router)
 
 
-@app.get("/health")
+@app.get("/health", tags=["system"], summary="Service + database health check")
 def health():
     from src.backend.database import SessionLocal
     db = SessionLocal()
