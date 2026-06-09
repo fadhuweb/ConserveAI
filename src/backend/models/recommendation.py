@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Column, Integer, String, Numeric, DateTime, ForeignKey,
     UniqueConstraint, ForeignKeyConstraint,
@@ -17,7 +17,7 @@ class Recommendation(Base):
     budget          = Column(Numeric(12, 2), nullable=False)
     total_cost      = Column(Numeric(12, 2), nullable=False, default=0)
     total_risk_reduction = Column(Numeric(8, 6), nullable=False, default=0)
-    created_at      = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class Allocation(Base):

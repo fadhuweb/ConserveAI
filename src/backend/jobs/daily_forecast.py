@@ -17,7 +17,7 @@ prevent other parks from being updated.
 import logging
 import os
 import pickle
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -321,7 +321,7 @@ def _process_park(park: str, target_date: date, artefact: dict) -> Optional[dict
         } for r in rows])
 
         X      = _compute_features(history, park, target_date)
-        X_imp  = imputer.transform(X)
+        X_imp  = imputer.transform(pd.DataFrame(X, columns=FEATURE_COLS))
         raw_p  = np.column_stack([p[:, 1] for p in model.predict_proba(X_imp)])
 
         if calibrators:
@@ -384,7 +384,7 @@ def run_and_save(target_date: Optional[date] = None):
                     fire_prob=vals["fire"],
                     drought_prob=vals["drought"],
                     veg_prob=vals["vegetation"],
-                    computed_at=datetime.utcnow(),
+                    computed_at=datetime.now(timezone.utc),
                 ))
         db.commit()
         logger.info("Daily job complete — %d/%d parks saved.", len(results), len(PARKS_CONFIG))

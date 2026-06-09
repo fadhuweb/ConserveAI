@@ -11,7 +11,7 @@ Run:
 
 import logging
 import pickle
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -224,7 +224,7 @@ def run_backfill(days: int = 60):
 
                 try:
                     X     = _compute_features(history, park, current)
-                    X_imp = imputer.transform(X)
+                    X_imp = imputer.transform(pd.DataFrame(X, columns=FEATURE_COLS))
                     raw_p = np.column_stack([p[:, 1] for p in model.predict_proba(X_imp)])
 
                     if calibrators:
@@ -242,7 +242,7 @@ def run_backfill(days: int = 60):
                         fire_prob=float(probs[0, 0]),
                         drought_prob=float(probs[0, 1]),
                         veg_prob=float(probs[0, 2]),
-                        computed_at=datetime.utcnow(),
+                        computed_at=datetime.now(timezone.utc),
                     ))
                     saved += 1
                 except Exception:

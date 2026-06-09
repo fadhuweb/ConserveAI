@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, Date, DateTime
 from src.backend.database import Base
 
@@ -12,4 +12,4 @@ class Forecast(Base):
     fire_prob   = Column(Float, nullable=False)
     drought_prob = Column(Float, nullable=False)
     veg_prob    = Column(Float, nullable=False)
-    computed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    computed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

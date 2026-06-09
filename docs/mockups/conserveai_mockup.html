@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConserveAI — UI Mockups</title>
+<style>
+  :root{
+    --fire:#E64A19; --fire-bg:#FBE9E3;
+    --drought:#1976D2; --drought-bg:#E3F0FB;
+    --veg:#388E3C; --veg-bg:#E6F2E7;
+    --hi:#D32F2F; --med:#F9A825; --lo:#43A047;
+    --brand:#0F3D2E; --brand-2:#1d6b4f;
+    --bg:#F4F6F9; --card:#FFFFFF; --ink:#16202B; --muted:#7A8794; --line:#EAEEF3;
+    --shadow:0 1px 2px rgba(16,32,43,.04), 0 8px 24px rgba(16,32,43,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter','Segoe UI',Roboto,system-ui,sans-serif;background:#d9dee6;color:var(--ink);padding:40px 24px;-webkit-font-smoothing:antialiased;}
+  .label{max-width:1180px;margin:0 auto 12px;font-size:12px;font-weight:700;color:#5b6875;text-transform:uppercase;letter-spacing:.12em;}
+  .screen{max-width:1180px;margin:0 auto 56px;background:var(--bg);border-radius:18px;overflow:hidden;box-shadow:0 20px 50px rgba(16,32,43,.18);border:1px solid rgba(255,255,255,.6);}
+
+  /* ── top nav ── */
+  .topbar{display:flex;align-items:center;justify-content:space-between;background:var(--brand);color:#fff;padding:0 26px;height:62px;}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:17px;letter-spacing:-.01em;}
+  .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#37b87f,#1d6b4f);display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .brand small{font-weight:500;opacity:.65;font-size:13px;margin-left:6px;padding-left:12px;border-left:1px solid rgba(255,255,255,.2);}
+  .nav{display:flex;gap:6px;}
+  .nav a{color:rgba(255,255,255,.75);text-decoration:none;font-size:14px;font-weight:500;padding:7px 14px;border-radius:8px;}
+  .nav a.active{background:rgba(255,255,255,.14);color:#fff;}
+  .user{font-size:13px;display:flex;align-items:center;gap:10px;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:#2e8b66;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;}
+
+  /* ── body ── */
+  .body{padding:26px;}
+  .section-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:2px 0 14px;}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:24px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow);position:relative;}
+  .card .head{display:flex;align-items:center;gap:11px;}
+  .icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .card .name{font-size:14px;color:var(--muted);font-weight:600;}
+  .card .v{font-size:38px;font-weight:750;letter-spacing:-.02em;margin:14px 0 4px;}
+  .pill{display:inline-block;padding:4px 11px;border-radius:999px;color:#fff;font-size:11px;font-weight:700;letter-spacing:.04em;}
+  .bar{height:6px;border-radius:99px;background:#EEF1F5;margin-top:16px;overflow:hidden;}
+  .bar i{display:block;height:100%;border-radius:99px;}
+
+  .grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;margin-bottom:24px;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow);}
+  .panel h3{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .panel .sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
+
+  /* zone map */
+  .zones{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;height:210px;}
+  .zone{border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;gap:3px;}
+  .zone .zn{font-size:12px;font-weight:600;opacity:.92;}
+  .zone .zu{font-size:20px;font-weight:750;}
+  .zlegend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:12px;}
+  .zlegend .scale{flex:1;height:8px;border-radius:99px;background:linear-gradient(90deg,#BBDEFB,#1565C0);}
+
+  /* recommendation */
+  .rec-controls{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:18px;}
+  .field label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;letter-spacing:.03em;text-transform:uppercase;}
+  .field input,.field select{padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;font-family:inherit;color:var(--ink);}
+  .field input{width:120px;font-weight:600;}
+  .btn{background:var(--brand);color:#fff;border:none;padding:11px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(15,61,46,.25);}
+  .result{background:linear-gradient(135deg,#F1F8F4,#EAF5EF);border:1px solid #D2E9DC;border-radius:12px;padding:18px;font-size:14px;line-height:1.9;}
+  .result .row{display:flex;gap:10px;align-items:center;}
+  .result b{color:var(--brand);font-weight:700;}
+  .chip{display:inline-block;background:#fff;border:1px solid #D2E9DC;border-radius:7px;padding:4px 10px;font-size:13px;font-weight:600;margin:2px 4px 2px 0;}
+  .arrow{color:var(--drought);font-weight:750;}
+
+  /* table */
+  table{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
+  th,td{text-align:left;padding:15px 18px;font-size:14px;border-bottom:1px solid var(--line);}
+  th{background:#F0F3F7;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:#FAFBFC;}
+  .park-name{font-weight:600;}
+  .riskcell{display:flex;align-items:center;gap:10px;}
+  .mini{width:70px;height:7px;border-radius:99px;background:#EEF1F5;overflow:hidden;}
+  .mini i{display:block;height:100%;}
+  .riskcell .pct{font-variant-numeric:tabular-nums;font-weight:600;width:38px;}
+
+  /* login */
+  .login{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;background:radial-gradient(1200px 400px at 50% -10%,#2a8a64,transparent),linear-gradient(165deg,#0F3D2E,#11503b);}
+  .login .logo{width:54px;height:54px;border-radius:14px;font-size:28px;margin-bottom:18px;box-shadow:0 8px 24px rgba(0,0,0,.3);}
+  .login h1{color:#fff;font-size:26px;font-weight:750;letter-spacing:-.01em;}
+  .login p{color:#bfe0d0;margin:8px 0 30px;font-size:14px;}
+  .login .box{background:#fff;border-radius:16px;padding:28px;width:340px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 60px rgba(0,0,0,.3);}
+  .login .field-l{display:flex;flex-direction:column;gap:6px;}
+  .login .field-l label{font-size:12px;font-weight:600;color:var(--muted);}
+  .login input{padding:12px 13px;border:1px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;}
+  .login .btn{margin-top:8px;width:100%;padding:13px;font-size:15px;}
+
+  /* chart */
+  svg{width:100%;height:210px;display:block;}
+  .legend{display:flex;gap:18px;font-size:13px;color:var(--muted);margin-top:10px;}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .legend i{display:inline-block;width:16px;height:3px;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- ───────────── SCREEN 1: LOGIN ───────────── -->
+<div class="label">Screen 1 · Login</div>
+<div class="screen">
+  <div class="login">
+    <div class="logo">🛡</div>
+    <h1>ConserveAI</h1>
+    <p>Wildlife threat forecasting · Nigerian National Parks</p>
+    <div class="box">
+      <div class="field-l"><label>Username</label><input value="manager_yankari"></div>
+      <div class="field-l"><label>Password</label><input type="password" value="••••••••••••"></div>
+      <button class="btn">Log in</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────── SCREEN 2: MANAGER DASHBOARD ───────────── -->
+<div class="label">Screen 2 · Park Manager Dashboard</div>
+<div class="screen">
+  <div class="topbar">
+    <div class="brand"><span class="logo">🛡</span>ConserveAI<small>Yankari Game Reserve</small></div>
+    <div class="nav">
+      <a class="active">Dashboard</a><a>Recommend</a><a>History</a>
+    </div>
+    <div class="user"><span class="avatar">MY</span>manager_yankari</div>
+  </div>
+  <div class="body">
+    <div class="section-title">Today's risk · next 30 days</div>
+    <div class="cards">
+      <div class="card">
+        <div class="head"><div class="icon" style="background:var(--fire-bg)">🔥</div><div class="name">Fire</div></div>
+        <div class="v" style="color:var(--fire)">16%</div>
+        <span class="pill" style="background:var(--lo)">LOW</span>
+        <div class="bar"><i style="width:16%;background:var(--fire)"></i></div>
+      </div>
+      <div class="card">
+        <div class="head"><div class="icon" style="background:var(--drought-bg)">💧</div><div class="name">Drought</div></div>
+        <div class="v" style="color:var(--drought)">98%</div>
+        <span class="pill" style="background:var(--hi)">HIGH</span>
+        <div class="bar"><i style="width:98%;background:var(--drought)"></i></div>
+      </div>
+      <div class="card">
+        <div class="head"><div class="icon" style="background:var(--veg-bg)">🌿</div><div class="name">Vegetation</div></div>
+        <div class="v" style="color:var(--veg)">48%</div>
+        <span class="pill" style="background:var(--med)">MEDIUM</span>
+        <div class="bar"><i style="width:48%;background:var(--veg)"></i></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h3>30-day forecast history</h3>
+        <div class="sub">Rolling probability that each threat occurs within 30 days</div>
+        <svg viewBox="0 0 520 210" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="gd" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1976D2" stop-opacity=".22"/>
+              <stop offset="100%" stop-color="#1976D2" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- gridlines -->
+          <g stroke="#EEF1F5" stroke-width="1">
+            <line x1="46" y1="20" x2="510" y2="20"/>
+            <line x1="46" y1="70" x2="510" y2="70"/>
+            <line x1="46" y1="120" x2="510" y2="120"/>
+            <line x1="46" y1="170" x2="510" y2="170"/>
+          </g>
+          <text x="14" y="24" font-size="10" fill="#A0AAB5">1.0</text>
+          <text x="14" y="124" font-size="10" fill="#A0AAB5">0.5</text>
+          <text x="20" y="174" font-size="10" fill="#A0AAB5">0</text>
+          <!-- drought area + line -->
+          <path d="M46,150 110,118 180,78 250,52 320,38 390,30 480,26 L480,170 L46,170 Z" fill="url(#gd)"/>
+          <polyline fill="none" stroke="#1976D2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+            points="46,150 110,118 180,78 250,52 320,38 390,30 480,26"/>
+          <!-- vegetation -->
+          <polyline fill="none" stroke="#388E3C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+            points="46,120 110,118 180,110 250,104 320,100 390,98 480,94"/>
+          <!-- fire -->
+          <polyline fill="none" stroke="#E64A19" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+            points="46,160 110,158 180,162 250,150 320,148 390,150 480,152"/>
+          <text x="46" y="192" font-size="11" fill="#7A8794">Apr</text>
+          <text x="250" y="192" font-size="11" fill="#7A8794">May</text>
+          <text x="465" y="192" font-size="11" fill="#7A8794">Jun</text>
+        </svg>
+        <div class="legend">
+          <span><i style="background:#E64A19"></i>Fire</span>
+          <span><i style="background:#1976D2"></i>Drought</span>
+          <span><i style="background:#388E3C"></i>Vegetation</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Zone deployment map</h3>
+        <div class="sub">Recommended units per zone</div>
+        <div class="zones">
+          <div class="zone" style="background:#1565C0"><span class="zn">North-West</span><span class="zu">6</span></div>
+          <div class="zone" style="background:#90CAF9;color:#0D47A1"><span class="zn">North-East</span><span class="zu">1</span></div>
+          <div class="zone" style="background:#9FCBF2;color:#0D47A1"><span class="zn">South-West</span><span class="zu">2</span></div>
+          <div class="zone" style="background:#1976D2"><span class="zn">South-East</span><span class="zu">5</span></div>
+        </div>
+        <div class="zlegend"><span>Low</span><span class="scale"></span><span>High</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Intervention recommendation</h3>
+      <div class="sub">Set a budget and per-zone priority, then optimise within constraints</div>
+      <div class="rec-controls">
+        <div class="field"><label>Budget (USD)</label><input value="10,000"></div>
+        <div class="field"><label>North-West</label><select><option>High</option></select></div>
+        <div class="field"><label>North-East</label><select><option>Normal</option></select></div>
+        <div class="field"><label>South-West</label><select><option>Low</option></select></div>
+        <div class="field"><label>South-East</label><select><option>High</option></select></div>
+        <button class="btn">Get Recommendations</button>
+      </div>
+      <div class="result">
+        <div class="row" style="margin-bottom:8px;">
+          <b>Recommended plan</b>
+          <span class="chip">8 × Water Trucking</span>
+          <span class="chip">5 × Community Liaison</span>
+          <span class="chip">1 × Fire Patrol</span>
+        </div>
+        <div class="row">
+          <b>Projected drought risk</b> 98% <span class="arrow">→</span> 15%
+          &nbsp;·&nbsp; <b>Cost</b> $9,900 / $10,000
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────── SCREEN 3: NATIONAL OVERVIEW ───────────── -->
+<div class="label">Screen 3 · National Overview (admin)</div>
+<div class="screen">
+  <div class="topbar">
+    <div class="brand"><span class="logo">🛡</span>ConserveAI<small>National Overview</small></div>
+    <div class="nav"><a class="active">Overview</a></div>
+    <div class="user"><span class="avatar">AD</span>admin</div>
+  </div>
+  <div class="body">
+    <div class="section-title">Latest forecast · all parks</div>
+    <table>
+      <tr><th>Park</th><th>Fire</th><th>Drought</th><th>Vegetation</th><th>Updated</th></tr>
+      <tr><td class="park-name">Yankari Game Reserve</td>
+        <td><div class="riskcell"><span class="mini"><i style="width:16%;background:var(--lo)"></i></span><span class="pct">16%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:98%;background:var(--hi)"></i></span><span class="pct">98%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:48%;background:var(--med)"></i></span><span class="pct">48%</span></div></td>
+        <td>2026-06-03</td></tr>
+      <tr><td class="park-name">Cross River National Park</td>
+        <td><div class="riskcell"><span class="mini"><i style="width:14%;background:var(--lo)"></i></span><span class="pct">14%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:96%;background:var(--hi)"></i></span><span class="pct">96%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:46%;background:var(--med)"></i></span><span class="pct">46%</span></div></td>
+        <td>2026-06-03</td></tr>
+      <tr><td class="park-name">Gashaka-Gumti National Park</td>
+        <td><div class="riskcell"><span class="mini"><i style="width:18%;background:var(--lo)"></i></span><span class="pct">18%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:97%;background:var(--hi)"></i></span><span class="pct">97%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:44%;background:var(--med)"></i></span><span class="pct">44%</span></div></td>
+        <td>2026-06-03</td></tr>
+      <tr><td class="park-name">Kainji Lake National Park</td>
+        <td><div class="riskcell"><span class="mini"><i style="width:15%;background:var(--lo)"></i></span><span class="pct">15%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:99%;background:var(--hi)"></i></span><span class="pct">99%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:45%;background:var(--med)"></i></span><span class="pct">45%</span></div></td>
+        <td>2026-06-03</td></tr>
+      <tr><td class="park-name">Chad Basin National Park</td>
+        <td><div class="riskcell"><span class="mini"><i style="width:20%;background:var(--lo)"></i></span><span class="pct">20%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:99%;background:var(--hi)"></i></span><span class="pct">99%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:47%;background:var(--med)"></i></span><span class="pct">47%</span></div></td>
+        <td>2026-06-03</td></tr>
+      <tr><td class="park-name">Old Oyo National Park</td>
+        <td><div class="riskcell"><span class="mini"><i style="width:11%;background:var(--lo)"></i></span><span class="pct">11%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:98%;background:var(--hi)"></i></span><span class="pct">98%</span></div></td>
+        <td><div class="riskcell"><span class="mini"><i style="width:47%;background:var(--med)"></i></span><span class="pct">47%</span></div></td>
+        <td>2026-06-03</td></tr>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>

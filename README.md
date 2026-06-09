@@ -30,6 +30,8 @@ The **ML model notebook** is [`notebooks/00_model_demo.ipynb`](notebooks/00_mode
 - **Optimiser:** PuLP (integer linear programming)
 - **Data sources:** Open-Meteo, NASA POWER, Google Earth Engine, NASA FIRMS (MODIS)
 - **Auth:** JWT (httpOnly cookie) + bcrypt, park-scoped
+- **Frontend:** React · Leaflet (zone maps) · Recharts (forecast charts)
+- **Deployment:** Neon (PostgreSQL) · Fly.io (backend) · GitHub Actions cron (scheduler) · Vercel (frontend)
 
 ---
 
@@ -61,6 +63,14 @@ JWT_EXPIRY_HOURS=8
 ENVIRONMENT=development
 LOG_LEVEL=INFO
 NASA_FIRMS_API_KEY=          # optional; fire counts default to 0 if absent
+
+# Email — needed only to create new manager accounts (admin user-provisioning).
+# SMTP_USER is a Gmail address; SMTP_PASSWORD is a Gmail App Password.
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
 ```
 
 **4. Seed the database** (creates tables, 7 users, intervention catalog, 24 zones)

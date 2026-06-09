@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "INFO"
 
+    # Email (Gmail SMTP) — used to send new managers their temporary password
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 465
+    smtp_user: str = ""        # your Gmail address
+    smtp_password: str = ""    # a Gmail App Password (not your normal password)
+    smtp_from: str = ""        # defaults to smtp_user if blank
+
     # The six Nigerian national parks
     parks: List[str] = [
         "yankari",
@@ -34,6 +41,10 @@ class Settings(BaseSettings):
     @property
     def jwt_expire_minutes(self) -> int:
         return self.jwt_expiry_hours * 60
+
+    @property
+    def email_enabled(self) -> bool:
+        return bool(self.smtp_user and self.smtp_password)
 
 
 settings = Settings()

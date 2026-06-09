@@ -22,15 +22,16 @@ from src.backend.config import settings, park_zones
 # ── Users ─────────────────────────────────────────────────────────────────────
 
 USERS = [
-    # Park managers — one per park
-    {"username": "manager_yankari",       "password": "conserve2025", "park_id": "yankari",       "role": Role.manager},
-    {"username": "manager_cross_river",   "password": "conserve2025", "park_id": "cross_river",   "role": Role.manager},
-    {"username": "manager_gashaka_gumti", "password": "conserve2025", "park_id": "gashaka_gumti", "role": Role.manager},
-    {"username": "manager_kainji_lake",   "password": "conserve2025", "park_id": "kainji_lake",   "role": Role.manager},
-    {"username": "manager_chad_basin",    "password": "conserve2025", "park_id": "chad_basin",    "role": Role.manager},
-    {"username": "manager_old_oyo",       "password": "conserve2025", "park_id": "old_oyo",       "role": Role.manager},
+    # Park managers — one per park. Seeded demo accounts keep a known password
+    # (must_change_password = False) so the demo logins work out of the box.
+    {"username": "manager_yankari",       "password": "conserve2025", "park_id": "yankari",       "role": Role.manager, "full_name": "Yankari Park Manager",       "email": "yankari@conserveai.ng"},
+    {"username": "manager_cross_river",   "password": "conserve2025", "park_id": "cross_river",   "role": Role.manager, "full_name": "Cross River Park Manager",   "email": "crossriver@conserveai.ng"},
+    {"username": "manager_gashaka_gumti", "password": "conserve2025", "park_id": "gashaka_gumti", "role": Role.manager, "full_name": "Gashaka-Gumti Park Manager", "email": "gashaka@conserveai.ng"},
+    {"username": "manager_kainji_lake",   "password": "conserve2025", "park_id": "kainji_lake",   "role": Role.manager, "full_name": "Kainji Lake Park Manager",   "email": "kainji@conserveai.ng"},
+    {"username": "manager_chad_basin",    "password": "conserve2025", "park_id": "chad_basin",    "role": Role.manager, "full_name": "Chad Basin Park Manager",    "email": "chadbasin@conserveai.ng"},
+    {"username": "manager_old_oyo",       "password": "conserve2025", "park_id": "old_oyo",       "role": Role.manager, "full_name": "Old Oyo Park Manager",       "email": "oldoyo@conserveai.ng"},
     # Admin
-    {"username": "admin",                 "password": "admin2025",    "park_id": None,             "role": Role.admin},
+    {"username": "admin",                 "password": "admin2025",    "park_id": None,            "role": Role.admin,   "full_name": "National Administrator",     "email": "admin@conserveai.ng"},
 ]
 
 
@@ -103,9 +104,13 @@ def seed(drop_existing: bool = False):
             if not db.query(User).filter(User.username == u["username"]).first():
                 db.add(User(
                     username=u["username"],
+                    full_name=u.get("full_name"),
                     password_hash=hash_password(u["password"]),
                     park_id=u["park_id"],
                     role=u["role"],
+                    email=u.get("email"),
+                    phone=u.get("phone"),
+                    must_change_password=False,   # seeded demo accounts use known passwords
                 ))
                 print(f"  + user  {u['username']}")
             else:
