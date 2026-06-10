@@ -44,6 +44,12 @@ class ZoneAllocationItem(BaseModel):
     cost:              float
 
 
+class BaselineRow(BaseModel):
+    strategy:    str
+    total_score: float
+    total_cost:  float
+
+
 class RecommendResponse(BaseModel):
     recommendation_id:         int
     status:                    str
@@ -56,6 +62,7 @@ class RecommendResponse(BaseModel):
     urgency_floors:            Dict[str, float]
     current_forecast:          PostInterventionForecast   # probabilities WITHOUT intervention
     post_intervention_forecast: PostInterventionForecast  # projected probabilities AFTER intervention
+    baseline_comparison:       List[BaselineRow]          # ILP vs even-split vs patrol-only
 
 
 class RecommendationSummary(BaseModel):

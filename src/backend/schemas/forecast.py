@@ -19,3 +19,16 @@ class ParkOverview(BaseModel):
     fire_prob:    float
     drought_prob: float
     veg_prob:     float
+
+
+class Driver(BaseModel):
+    label:  str
+    value:  str
+    impact: str   # "raises" | "lowers"
+
+
+class DriversResponse(BaseModel):
+    park:    str
+    date:    str
+    probs:   dict                 # {fire, drought, vegetation}
+    drivers: dict                 # {threat: [Driver, ...]}

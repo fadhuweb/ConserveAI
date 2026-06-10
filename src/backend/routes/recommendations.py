@@ -15,7 +15,7 @@ from src.backend.schemas.recommendation import (
     RecommendRequest, RecommendResponse,
     SensitivityRequest, SensitivityResponse,
     AllocationItem, ThreatReduction, PostInterventionForecast,
-    ZoneAllocationItem, RecommendationSummary,
+    ZoneAllocationItem, RecommendationSummary, BaselineRow,
 )
 from src.backend.config import settings
 
@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "optimizer"))
 from ilp_recommender import ILPConstraints, recommend, urgency_constraints
 from sensitivity import run_sensitivity
 from catalog import CATALOG_BY_ID
+from baselines import even_split, patrol_only
 
 router = APIRouter(tags=["recommendations"])
 
@@ -156,6 +157,15 @@ def recommend_interventions(
 
     db.commit()
 
+    # Baseline comparison: how the ILP plan stacks up against naive strategies
+    even = even_split(probs, body.budget)
+    patrol = patrol_only(probs, body.budget)
+    baseline_comparison = [
+        BaselineRow(strategy="ILP (optimal)", total_score=result.total_score, total_cost=result.total_cost),
+        BaselineRow(strategy="Even split",    total_score=even["total_score"],   total_cost=even["total_cost"]),
+        BaselineRow(strategy="Patrol only",   total_score=patrol["total_score"], total_cost=patrol["total_cost"]),
+    ]
+
     return RecommendResponse(
         recommendation_id=rec.id,
         status=result.status,
@@ -176,6 +186,7 @@ def recommend_interventions(
             drought=rr["drought"]["prob_after"],
             vegetation=rr["vegetation"]["prob_after"],
         ),
+        baseline_comparison=baseline_comparison,
     )
 
 

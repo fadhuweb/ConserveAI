@@ -8,9 +8,10 @@ from src.backend.config import settings, PARKS_META
 from src.backend.database import get_db
 from src.backend.models.forecast import Forecast
 from src.backend.models.intervention import InterventionCatalog
+from src.backend.models.raw_features import DailyFeatures
 from src.backend.models.user import User
 from src.backend.models.zone import Zone
-from src.backend.schemas.forecast import ForecastOut, ParkOverview
+from src.backend.schemas.forecast import ForecastOut, ParkOverview, DriversResponse
 from src.backend.schemas.park import ParkMeta, CatalogItem, ZoneOut
 
 router = APIRouter(tags=["forecasts"])
@@ -95,6 +96,56 @@ def get_latest_forecast(
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No forecasts found")
     return row
+
+
+@router.get("/forecasts/{park}/drivers", response_model=DriversResponse,
+            summary="Key feature drivers behind a park's current forecast")
+def forecast_drivers(
+    park: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Plain-language drivers: which features are raising/lowering each threat."""
+    import pandas as pd
+    from datetime import timedelta
+    from src.backend.services.drivers import compute_drivers
+
+    if park not in settings.parks:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown park: {park}")
+    park_scoped(park, current_user)
+
+    fc = (
+        db.query(Forecast)
+        .filter(Forecast.park == park)
+        .order_by(Forecast.date.desc())
+        .first()
+    )
+    if fc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No forecasts found")
+
+    probs = {"fire": fc.fire_prob, "drought": fc.drought_prob, "vegetation": fc.veg_prob}
+
+    cutoff = fc.date - timedelta(days=90)
+    daily = (
+        db.query(DailyFeatures)
+        .filter(DailyFeatures.park == park, DailyFeatures.date >= cutoff, DailyFeatures.date <= fc.date)
+        .order_by(DailyFeatures.date)
+        .all()
+    )
+    if not daily:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No feature history for this park")
+
+    history = pd.DataFrame([{
+        "date":          r.date,
+        "precipitation": r.precipitation,
+        "temp_max":      r.temp_max,
+        "temp_min":      r.temp_min,
+        "ndvi":          r.ndvi,
+        "firms_count":   r.firms_count or 0,
+    } for r in daily])
+
+    drivers = compute_drivers(history, park, fc.date)
+    return DriversResponse(park=park, date=str(fc.date), probs=probs, drivers=drivers)
 
 
 @router.get("/national-overview", response_model=List[ParkOverview], summary="Latest forecast for all parks (admin only)")
