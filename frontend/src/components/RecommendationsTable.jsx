@@ -1,4 +1,5 @@
 import { Table, Empty } from "antd";
+import { fmtNGN } from "../lib/currency";
 
 // Park-level recommended allocation: intervention, units, cost.
 export default function RecommendationsTable({ recommendation }) {
@@ -8,7 +9,7 @@ export default function RecommendationsTable({ recommendation }) {
     { title: "Intervention", dataIndex: "name", key: "name" },
     { title: "Units", dataIndex: "units", key: "units", align: "right" },
     { title: "Cost", dataIndex: "cost", key: "cost", align: "right",
-      render: (c) => `$${c.toLocaleString()}` },
+      render: (c) => fmtNGN(c) },
   ];
   const data = (recommendation.allocation || []).map((a) => ({ ...a, key: a.id }));
 
@@ -22,7 +23,7 @@ export default function RecommendationsTable({ recommendation }) {
               <b>{data.reduce((s, r) => s + r.units, 0)}</b>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={2} align="right">
-              <b>${recommendation.total_cost.toLocaleString()}</b>
+              <b>{fmtNGN(recommendation.total_cost)}</b>
             </Table.Summary.Cell>
           </Table.Summary.Row>
         )}

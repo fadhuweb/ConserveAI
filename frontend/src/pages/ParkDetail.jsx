@@ -10,9 +10,11 @@ import RecommendationsTable from "../components/RecommendationsTable";
 import BaselineComparison from "../components/BaselineComparison";
 import SensitivityPanel from "../components/SensitivityPanel";
 import ParkMap from "../components/ParkMap";
+import ZonePriority from "../components/ZonePriority";
 import { getPark, getForecasts, getZones, getDrivers } from "../api/forecasts";
 import { recommend, sensitivity } from "../api/recommendations";
 import { riskColor, riskLabel, pct } from "../lib/risk";
+import { ngnToUsd } from "../lib/currency";
 
 const THREATS = [["Fire", "fire_prob", "fire"], ["Drought", "drought_prob", "drought"], ["Vegetation", "veg_prob", "vegetation"]];
 
@@ -26,8 +28,9 @@ export default function ParkDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [budget, setBudget] = useState(10000);
+  const [budget, setBudget] = useState(16000000);   // ₦ (≈ $10,000)
   const [typeEnabled, setTypeEnabled] = useState({});
+  const [zoneWeights, setZoneWeights] = useState({});
   const [recommendation, setRecommendation] = useState(null);
   const [recommending, setRecommending] = useState(false);
 
@@ -46,6 +49,7 @@ export default function ParkDetail() {
     ])
       .then(([m, fc, zs, dr]) => {
         setMeta(m); setForecasts(fc); setZones(zs); setDrivers(dr);
+        setZoneWeights(Object.fromEntries(zs.map((z) => [z.id, 1])));   // equal = even split
       })
       .catch(() => setError("Failed to load park data."))
       .finally(() => setLoading(false));
@@ -57,7 +61,12 @@ export default function ParkDetail() {
     const t = setTimeout(async () => {
       setRecommending(true);
       try {
-        const res = await recommend({ park: parkId, budget, type_enabled: typeEnabled });
+        const res = await recommend({
+          park: parkId,
+          budget: ngnToUsd(budget),
+          type_enabled: typeEnabled,
+          zone_weights: zoneWeights,
+        });
         if (!cancelled) setRecommendation(res);
       } catch (_) {
         /* keep previous result */
@@ -66,12 +75,12 @@ export default function ParkDetail() {
       }
     }, 450);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [parkId, budget, typeEnabled]);
+  }, [parkId, budget, typeEnabled, zoneWeights]);
 
   const runSensitivity = async () => {
     setSensLoading(true);
     try {
-      const r = await sensitivity({ park: parkId, budget, n_samples: 30 });
+      const r = await sensitivity({ park: parkId, budget: ngnToUsd(budget), n_samples: 30 });
       setSens(r);
     } finally {
       setSensLoading(false);
@@ -127,6 +136,11 @@ export default function ParkDetail() {
                   <div style={{ margin: "18px 0" }}>
                     <div style={{ fontWeight: 600, marginBottom: 10 }}>Allowed intervention types</div>
                     <ConstraintControls typeEnabled={typeEnabled} onChange={setTypeEnabled} />
+                  </div>
+
+                  <div style={{ margin: "18px 0" }}>
+                    <div style={{ fontWeight: 600, marginBottom: 10 }}>Zone priority</div>
+                    <ZonePriority zones={zones} weights={zoneWeights} onChange={setZoneWeights} />
                   </div>
 
                   {recommendation && (

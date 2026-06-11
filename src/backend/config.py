@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     log_level: str = "INFO"
+    frontend_url: str = "http://localhost:5173"   # used to build the password-reset link
 
     # Email (Gmail SMTP) — used to send new managers their temporary password
     smtp_host: str = "smtp.gmail.com"

@@ -297,6 +297,37 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
   .login-card { padding: 36px 24px; }
 }
 
+/* "Forgot password?" link under the login button */
+.forgot-link {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--brand-accent);
+  cursor: pointer;
+}
+.forgot-link:hover { text-decoration: underline; }
+
+/* centered single-card pages (change password, forgot password) */
+.centered-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #F1F5F9;
+}
+
+/* password requirements checklist */
+.pw-reqs {
+  list-style: none;
+  margin: 4px 0 4px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.pw-reqs li { display: flex; align-items: center; gap: 8px; transition: color .2s; }
+
 /* ── app shell ── */
 .topbar { 
   position: sticky; 

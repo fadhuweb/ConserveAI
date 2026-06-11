@@ -4,15 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from src.backend.auth.dependencies import require_admin, get_current_user
-from src.backend.auth.jwt_handler import create_access_token
-from src.backend.auth.password import hash_password, verify_password
+from src.backend.auth.jwt_handler import create_access_token, create_reset_token, decode_reset_token
+from src.backend.auth.password import hash_password, verify_password, password_problems
 from src.backend.config import settings
 from src.backend.database import get_db
 from src.backend.models.user import User, Role
 from src.backend.schemas.auth import (
     LoginRequest, TokenResponse, CreateUserRequest, UserOut, ChangePasswordRequest,
+    ForgotPasswordRequest, ResetPasswordRequest,
 )
-from src.backend.services.email import send_temporary_password
+from src.backend.services.email import send_temporary_password, send_reset_link
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -131,9 +132,10 @@ def change_password(
     if not verify_password(body.current_password, current_user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Current password is incorrect")
-    if len(body.new_password) < 8:
+    problems = password_problems(body.new_password)
+    if problems:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail="New password must be at least 8 characters")
+                            detail="Password must contain " + ", ".join(problems))
 
     current_user.password_hash = hash_password(body.new_password)
     current_user.must_change_password = False
@@ -142,3 +144,50 @@ def change_password(
     # Invalidate the current session so the next login uses the new password.
     response.delete_cookie("access_token")
     return {"message": "Password changed. Please log in again."}
+
+
+@router.post("/forgot-password", summary="Self-service reset — emails a secure reset link")
+def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Email a time-limited reset link to the account on file.
+
+    Always returns the same generic message so the endpoint can't be used to probe
+    which usernames exist. The password is NOT changed here — the user sets it
+    themselves via the link (/auth/reset-password).
+    """
+    generic = {"message": "If that account exists, a reset link has been emailed to it."}
+
+    user = db.query(User).filter(User.username == body.username).first()
+    if user is None or not user.email:
+        return generic
+
+    token = create_reset_token(user.username)
+    reset_url = f"{settings.frontend_url}/reset-password?token={token}"
+    try:
+        send_reset_link(user.email, user.username, user.full_name, reset_url)
+    except Exception:
+        return generic
+
+    return generic
+
+
+@router.post("/reset-password", summary="Set a new password using a reset-link token")
+def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Validate the reset token and set the new password directly."""
+    username = decode_reset_token(body.token)
+    if username is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="This reset link is invalid or has expired. Request a new one.")
+    problems = password_problems(body.new_password)
+    if problems:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="Password must contain " + ", ".join(problems))
+
+    user = db.query(User).filter(User.username == username).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="This reset link is invalid or has expired. Request a new one.")
+
+    user.password_hash = hash_password(body.new_password)
+    user.must_change_password = False   # they just set it themselves
+    db.commit()
+    return {"message": "Password updated. You can now log in with your new password."}

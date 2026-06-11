@@ -1,7 +1,7 @@
 import { Slider, InputNumber } from "antd";
 
 // Budget control: slider + number input, kept in sync. Parent debounces the recommend call.
-export default function BudgetInput({ value, onChange, min = 2000, max = 20000, step = 500 }) {
+export default function BudgetInput({ value, onChange, min = 3200000, max = 32000000, step = 800000 }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
@@ -11,14 +11,14 @@ export default function BudgetInput({ value, onChange, min = 2000, max = 20000, 
           min={min}
           max={max}
           step={step}
-          formatter={(v) => `$ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-          parser={(v) => v.replace(/\$\s?|(,*)/g, "")}
+          formatter={(v) => `₦ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+          parser={(v) => v.replace(/₦\s?|(,*)/g, "")}
           onChange={(v) => v != null && onChange(v)}
-          style={{ width: 140 }}
+          style={{ width: 170 }}
         />
       </div>
       <Slider value={value} min={min} max={max} step={step} onChange={onChange}
-        tooltip={{ formatter: (v) => `$${v.toLocaleString()}` }} />
+        tooltip={{ formatter: (v) => `₦${v.toLocaleString()}` }} />
     </div>
   );
 }

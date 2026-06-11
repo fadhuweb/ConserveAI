@@ -50,3 +50,18 @@ def send_temporary_password(to: str, username: str, full_name: str | None, temp_
         f"— ConserveAI"
     )
     send_email(to, subject, body)
+
+
+def send_reset_link(to: str, username: str, full_name: str | None, reset_url: str) -> None:
+    """Email a user a secure link to set a new password themselves."""
+    name = full_name or username
+    subject = "Reset your ConserveAI password"
+    body = (
+        f"Hello {name},\n\n"
+        f"We received a request to reset your ConserveAI password. "
+        f"Click the link below to set a new one (it expires in 30 minutes):\n\n"
+        f"  {reset_url}\n\n"
+        f"If you didn't request this, you can ignore this email — your password won't change.\n\n"
+        f"— ConserveAI"
+    )
+    send_email(to, subject, body)
