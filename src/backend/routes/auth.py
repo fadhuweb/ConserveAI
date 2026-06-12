@@ -48,6 +48,11 @@ def logout(response: Response):
     return {"message": "Logged out"}
 
 
+@router.get("/users", response_model=list[UserOut], summary="List all accounts (admin only)")
+def list_users(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return db.query(User).order_by(User.role.desc(), User.username).all()
+
+
 @router.post(
     "/users",
     response_model=UserOut,

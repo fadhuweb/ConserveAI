@@ -7,6 +7,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NationalOverview from "./pages/NationalOverview";
 import ParkDetail from "./pages/ParkDetail";
+import Managers from "./pages/Managers";
 
 // Sends a logged-in user to their role's home, or to login otherwise.
 function Home() {
@@ -26,6 +27,10 @@ export default function App() {
       <Route
         path="/national"
         element={<ProtectedRoute role="admin"><NationalOverview /></ProtectedRoute>}
+      />
+      <Route
+        path="/managers"
+        element={<ProtectedRoute role="admin"><Managers /></ProtectedRoute>}
       />
       <Route
         path="/park/:parkId"

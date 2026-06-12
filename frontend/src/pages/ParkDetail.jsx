@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, Row, Col, Spin, Alert, Statistic } from "antd";
-import TopBar from "../components/TopBar";
+import AppShell from "../components/AppShell";
 import ForecastChart from "../components/ForecastChart";
 import DriversPanel from "../components/DriversPanel";
 import BudgetInput from "../components/BudgetInput";
 import ConstraintControls from "../components/ConstraintControls";
 import RecommendationsTable from "../components/RecommendationsTable";
-import BaselineComparison from "../components/BaselineComparison";
-import SensitivityPanel from "../components/SensitivityPanel";
 import ParkMap from "../components/ParkMap";
 import ZonePriority from "../components/ZonePriority";
 import { getPark, getForecasts, getZones, getDrivers } from "../api/forecasts";
-import { recommend, sensitivity } from "../api/recommendations";
+import { recommend } from "../api/recommendations";
 import { riskColor, riskLabel, pct } from "../lib/risk";
 import { ngnToUsd } from "../lib/currency";
 
@@ -33,9 +31,6 @@ export default function ParkDetail() {
   const [zoneWeights, setZoneWeights] = useState({});
   const [recommendation, setRecommendation] = useState(null);
   const [recommending, setRecommending] = useState(false);
-
-  const [sens, setSens] = useState(null);
-  const [sensLoading, setSensLoading] = useState(false);
 
   // ── initial load ──
   useEffect(() => {
@@ -77,22 +72,10 @@ export default function ParkDetail() {
     return () => { cancelled = true; clearTimeout(t); };
   }, [parkId, budget, typeEnabled, zoneWeights]);
 
-  const runSensitivity = async () => {
-    setSensLoading(true);
-    try {
-      const r = await sensitivity({ park: parkId, budget: ngnToUsd(budget), n_samples: 30 });
-      setSens(r);
-    } finally {
-      setSensLoading(false);
-    }
-  };
-
   const latest = forecasts.length ? forecasts[forecasts.length - 1] : null;
 
   return (
-    <div className="page">
-      <TopBar subtitle={meta?.display_name || parkId} />
-      <main className="content">
+    <AppShell subtitle={meta?.display_name || parkId}>
         {loading ? (
           <div style={{ padding: 100, textAlign: "center" }}><Spin size="large" /></div>
         ) : error ? (
@@ -129,8 +112,6 @@ export default function ParkDetail() {
               <DriversPanel drivers={drivers?.drivers} />
             </Card>
 
-            <Row gutter={16}>
-              <Col xs={24} lg={14}>
                 <Card title="Budget-constrained recommendation" style={{ marginBottom: 16 }}>
                   <BudgetInput value={budget} onChange={setBudget} />
                   <div style={{ margin: "18px 0" }}>
@@ -170,20 +151,8 @@ export default function ParkDetail() {
                 <Card title="Zone deployment">
                   <ParkMap zones={zones} zoneAllocations={recommendation?.zone_allocations} />
                 </Card>
-              </Col>
-
-              <Col xs={24} lg={10}>
-                <Card title="Baseline comparison" style={{ marginBottom: 16 }}>
-                  <BaselineComparison baselines={recommendation?.baseline_comparison} />
-                </Card>
-                <Card title="Sensitivity analysis">
-                  <SensitivityPanel result={sens} loading={sensLoading} onRun={runSensitivity} />
-                </Card>
-              </Col>
-            </Row>
           </>
         )}
-      </main>
-    </div>
+    </AppShell>
   );
 }

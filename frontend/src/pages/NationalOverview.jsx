@@ -5,7 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { Card, Row, Col, Table, Button, Alert, Spin } from "antd";
 import { useNavigate } from "react-router-dom";
 import { GlobalOutlined, WarningOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import TopBar from "../components/TopBar";
+import AppShell from "../components/AppShell";
 import { getParks, getNationalOverview } from "../api/forecasts";
 import { riskColor, pct } from "../lib/risk";
 
@@ -125,10 +125,7 @@ export default function NationalOverview() {
   ];
 
   return (
-    <div className="page">
-      <TopBar subtitle="National Overview" />
-
-      <main className="content">
+    <AppShell subtitle="National Overview">
         <div style={{ marginBottom: 24 }}>
           <h2>National Overview</h2>
           <p className="muted" style={{ marginTop: 6, fontSize: 15 }}>
@@ -237,7 +234,6 @@ export default function NationalOverview() {
             </Card>
           </>
         )}
-      </main>
-    </div>
+    </AppShell>
   );
 }

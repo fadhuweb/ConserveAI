@@ -4,40 +4,45 @@
 
 Repository: https://github.com/fadhuweb/ConserveAI
 
-ConserveAI produces daily 30-day risk forecasts for **fire, drought, and vegetation degradation** across six national parks, then recommends how a park manager should spend a limited conservation budget to reduce that risk — allocated down to four zones per park. A machine-learning model serves the forecasts; an integer-linear-programming (ILP) optimiser produces the recommendations. The working interface for this demo is the **FastAPI Swagger UI**.
+ConserveAI produces daily 30-day risk forecasts for **fire, drought, and vegetation degradation** across six national parks, then recommends how a park manager should spend a limited conservation budget to reduce that risk — allocated down to four zones per park. A machine-learning model serves the forecasts; an integer-linear-programming (ILP) optimiser produces the recommendations. The product is a **React web dashboard** backed by a **FastAPI** service (also browsable as a Swagger API).
 
 ---
 
-## What you can demo
+## What you can demo (the dashboard)
 
-| Capability | Endpoint |
-|------------|----------|
-| Log in (JWT in httpOnly cookie) | `POST /auth/login` |
-| 30-day forecast history for a park | `GET /forecasts/{park}` |
-| Latest forecast for all parks (admin) | `GET /national-overview` |
-| Budget-constrained, zone-level recommendation | `POST /recommend` |
-| Robustness / sensitivity analysis | `POST /sensitivity` |
-| Parks, zones, intervention catalog | `GET /parks`, `/parks/{id}/zones`, `/catalog` |
+| Capability | Where in the app |
+|------------|------------------|
+| Role-based login (JWT in an httpOnly cookie) | Login screen |
+| National risk overview — Nigeria map with per-park risk markers + summary table | Admin → **National Overview** |
+| 30-day forecast chart (fire / drought / vegetation) over the last 60 days | **Park Detail** |
+| Forecast drivers — the key features behind each threat | **Park Detail** |
+| Budget-constrained, **zone-level** intervention recommendation (live budget slider, intervention toggles, zone priority) | **Park Detail** |
+| Zone deployment map (units allocated per zone) | **Park Detail** |
+| Provision park managers — system emails a temporary password; forced change on first login | Admin → **Park Managers** |
+| Park-scoping — managers only ever see their own park; admin sees the national view | Enforced app-wide (frontend routing + backend 403s) |
 
-The **ML model notebook** is [`notebooks/00_model_demo.ipynb`](notebooks/00_model_demo.ipynb) — data engineering, the 8-configuration architecture comparison, and performance metrics (F2, ROC-AUC, precision/recall) with rendered outputs.
+The underlying service is also browsable as a **Swagger API** at `http://localhost:8000/docs`.
+
+The **ML model notebook** is [`notebooks/00_model_demo.ipynb`](notebooks/00_model_demo.ipynb) — data engineering, the architecture comparison, and performance metrics (F2, ROC-AUC, precision/recall) with rendered outputs.
 
 ---
 
 ## Tech stack
 
+- **Frontend:** React (Vite) · Ant Design · Leaflet (maps) · Recharts (forecast charts)
 - **Backend:** FastAPI · SQLAlchemy · PostgreSQL · APScheduler
-- **ML:** scikit-learn (Random Forest), XGBoost, PyTorch (LSTM, Transformer) — supervised + semi-supervised
+- **ML:** scikit-learn (Random Forest, self-training), XGBoost, PyTorch (LSTM, Transformer) — supervised + semi-supervised
 - **Optimiser:** PuLP (integer linear programming)
-- **Data sources:** Open-Meteo, NASA POWER, Google Earth Engine, NASA FIRMS (MODIS)
-- **Auth:** JWT (httpOnly cookie) + bcrypt, park-scoped
-- **Frontend:** React · Leaflet (zone maps) · Recharts (forecast charts)
-- **Deployment:** Neon (PostgreSQL) · Fly.io (backend) · GitHub Actions cron (scheduler) · Vercel (frontend)
+- **Data sources:** Open-Meteo, NASA POWER, Google Earth Engine, NASA FIRMS (VIIRS/MODIS)
+- **Auth:** JWT (httpOnly cookie) + bcrypt, park-scoped; admin-provisioned accounts with emailed temporary passwords
 
 ---
 
 ## Setup (Windows / PowerShell)
 
-> Prerequisites: Python 3.12+, PostgreSQL 17 installed.
+> Prerequisites: **Python 3.12+**, **Node.js 18+**, **PostgreSQL 17** installed.
+
+### Backend
 
 **1. Clone and create the virtual environment**
 ```powershell
@@ -62,6 +67,7 @@ JWT_ALGORITHM=HS256
 JWT_EXPIRY_HOURS=8
 ENVIRONMENT=development
 LOG_LEVEL=INFO
+FRONTEND_URL=http://localhost:5173
 NASA_FIRMS_API_KEY=          # optional; fire counts default to 0 if absent
 
 # Email — needed only to create new manager accounts (admin user-provisioning).
@@ -83,12 +89,22 @@ python -m src.backend.seed_data
 python -m src.backend.jobs.backfill --days 60
 ```
 
-**6. Run the API**
+**6. Run the backend API**
 ```powershell
 uvicorn src.backend.main:app --reload --port 8000
 ```
+The Swagger UI is then at **http://localhost:8000/docs**.
 
-**7. Open the interactive API** → **http://localhost:8000/docs**
+### Frontend
+
+**7. In a second terminal, install and run the dashboard**
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+**8. Open the dashboard** → **http://localhost:5173**
 
 ---
 
@@ -104,15 +120,18 @@ uvicorn src.backend.main:app --reload --port 8000
 | `manager_old_oyo` | `conserve2025` | manager | Old Oyo only |
 | `admin` | `admin2025` | admin | all parks + national overview |
 
-**Quick walkthrough in Swagger:** log in as `admin` → `GET /national-overview` → `GET /forecasts/yankari` → `POST /recommend` with `{"park":"yankari","budget":10000}` → `POST /sensitivity` with `{"park":"yankari","budget":10000,"n_samples":30}`.
+**Quick walkthrough:** open the dashboard → log in as **`admin`** to see the National Overview map and per-park risk table → then log in as a manager (e.g. **`manager_chad_basin`**) to explore that park's 60-day forecast chart and generate a budget-constrained, zone-level recommendation. As admin, **Park Managers** shows the account-provisioning flow.
+
+> New managers created through the admin UI receive a temporary password by email and set their own on first login, so creating accounts requires the SMTP variables above. The seeded demo accounts work without any email setup.
 
 ---
 
 ## Designs
 
-- **Interface mockup (rendered):** [`docs/mockups/conserveai_mockup.html`](docs/mockups/conserveai_mockup.html) — open in a browser to see the planned dashboard (login, park-manager dashboard, national overview).
+- **Live dashboard** — the React app above is the primary interface (login, national overview, park detail, manager provisioning).
+- **Interface mockup:** [`docs/mockups/conserveai_mockup.html`](docs/mockups/conserveai_mockup.html) — the original design reference.
 - **Design spec & wireframes:** [`docs/DESIGN.md`](docs/DESIGN.md)
-- **Interface screenshots:** [`docs/screenshots/`](docs/screenshots/) — Swagger UI in action + mockup frames.
+- **Screenshots:** [`docs/screenshots/`](docs/screenshots/)
 
 ---
 
@@ -125,28 +144,29 @@ The system is built to run on free-tier infrastructure:
 | Database | **Neon** (serverless PostgreSQL — swap via `DATABASE_URL`) |
 | Backend | **Fly.io** (always-on Docker container running FastAPI) |
 | Scheduler | **GitHub Actions cron** → protected daily-forecast endpoint (replaces in-process APScheduler so a sleeping container can't miss the 3 AM job) |
-| Frontend | **Vercel** (planned React dashboard) |
+| Frontend | **Vercel** (React dashboard) |
 
-At deploy time, an `ENVIRONMENT=production` flag flips the auth cookie to `secure`/`samesite=none` and applies production CORS origins. Provisioning is a one-time `seed_data` + `backfill` run against the Neon database.
+At deploy time, an `ENVIRONMENT=production` flag flips the auth cookie to `secure`/`samesite=none` and applies production CORS origins; `FRONTEND_URL` points the password-reset links at the deployed dashboard. Provisioning is a one-time `seed_data` + `backfill` run against the Neon database.
 
 ---
 
 ## Video demo
 
-📹 **[Demo video link — to be added]**
+https://drive.google.com/file/d/13hFM-HJQQouwi9S0ZQP2i-dPRxxds7mD/view?usp=sharing
 
 ---
 
 ## Repository structure
 
 ```
+frontend/         React dashboard (Vite) — pages, components, AntD UI
 src/
   backend/        FastAPI app — auth, routes, models, jobs, config
   models/         ML training, evaluation, production model packaging
   optimizer/      ILP recommender, sensitivity analysis, intervention catalog
   data_pipeline/  data ingestion & feature engineering
 notebooks/        00_model_demo + supporting analysis notebooks
-docs/             design spec, mockups, screenshots
+docs/             design spec, mockups, screenshots, demo script
 results/          trained models, metrics, production model
 ```
 

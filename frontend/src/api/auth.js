@@ -17,3 +17,6 @@ export const resetPassword = (token, new_password) =>
 
 export const createUser = (payload) =>
   client.post("/auth/users", payload).then((r) => r.data);
+
+export const listUsers = () =>
+  client.get("/auth/users").then((r) => r.data);
