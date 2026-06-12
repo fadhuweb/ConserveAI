@@ -69,11 +69,18 @@ def get_park_forecasts(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown park: {park}")
     park_scoped(park, current_user)
 
-    q = db.query(Forecast).filter(Forecast.park == park)
+    # Always take the most recent `days` forecasts, then present them in the
+    # requested order. (Ordering asc *before* limiting would return the OLDEST
+    # rows, making the latest forecast wrong on the dashboard.)
+    rows = (
+        db.query(Forecast)
+        .filter(Forecast.park == park)
+        .order_by(Forecast.date.desc())
+        .limit(days)
+        .all()
+    )
     if order == "asc":
-        rows = q.order_by(Forecast.date.asc()).limit(days).all()
-    else:
-        rows = q.order_by(Forecast.date.desc()).limit(days).all()
+        rows = list(reversed(rows))
     return rows
 
 

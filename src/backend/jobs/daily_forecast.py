@@ -58,6 +58,10 @@ FEATURE_COLS = [
     "doy_sin", "doy_cos", "dry_season", "park_id", "ecosystem_id",
 ]
 
+# Minimum days of continuous history needed for reliable rolling features
+# (rain_30d / rain_60d / ndvi_90d). Below this a forecast would be garbage, so skip it.
+MIN_HISTORY_DAYS = 45
+
 
 # ── Data fetchers ─────────────────────────────────────────────────────────────
 
@@ -93,25 +97,48 @@ def _fetch_climate(park: str, target_date: date) -> dict:
     raise RuntimeError(f"Open-Meteo rate limit exceeded for {park} after 4 attempts")
 
 
+# Near-real-time first (recent dates), then standard/archived (older dates).
+FIRMS_PRODUCTS = ["VIIRS_SNPP_NRT", "VIIRS_SNPP_SP"]
+
+
+def _firms_count_for_product(api_key: str, bbox: str, target_date: date, product: str) -> Optional[int]:
+    """Fire-detection count for one FIRMS product, or None if it doesn't serve this date.
+
+    The area API returns a plain-text error (not CSV) for unsupported date/product
+    combos, so we only count when the response is a real CSV (starts with 'latitude').
+    """
+    url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{api_key}/{product}/{bbox}/7/{target_date.isoformat()}"
+    try:
+        resp = requests.get(url, timeout=30)
+        resp.raise_for_status()
+        text = resp.text.strip()
+        if not text.lower().startswith("latitude"):
+            return None                          # error message, not CSV → product can't serve this date
+        return sum(1 for l in text.splitlines() if l and not l.startswith("latitude"))
+    except Exception:
+        return None
+
+
 def _fetch_firms(park: str, target_date: date) -> int:
-    """Count fire detections in last 7 days from FIRMS REST API."""
-    api_key = os.getenv("NASA_FIRMS_API_KEY", "")
+    """Count fire detections in the last 7 days from FIRMS.
+
+    Tries near-real-time first, falling back to the standard/archived product so the
+    live job stays robust at the ~2-month NRT boundary. Returns 0 if neither serves
+    this date (e.g. genuinely no fires, or a date older than both products cover)."""
+    api_key = os.getenv("NASA_FIRMS_API_KEY", "").strip()
     if not api_key:
         logger.warning("NASA_FIRMS_API_KEY not set — using 0 for firms_count")
         return 0
 
-    cfg  = PARKS_CONFIG[park]
-    bbox = cfg["bbox"]   # "west,south,east,north"
-    url  = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{api_key}/VIIRS_SNPP_NRT/{bbox}/7/{target_date.isoformat()}"
+    bbox = PARKS_CONFIG[park]["bbox"]   # "west,south,east,north"
+    for product in FIRMS_PRODUCTS:
+        count = _firms_count_for_product(api_key, bbox, target_date, product)
+        if count is not None:
+            return count
 
-    try:
-        resp = requests.get(url, timeout=30)
-        resp.raise_for_status()
-        lines = [l for l in resp.text.strip().splitlines() if l and not l.startswith("latitude")]
-        return len(lines)
-    except Exception:
-        logger.warning("FIRMS fetch failed for %s — defaulting to 0", park)
-        return 0
+    logger.warning("FIRMS unavailable for %s on %s (no product served it) — defaulting to 0",
+                   park, target_date.isoformat())
+    return 0
 
 
 def _init_gee() -> bool:
@@ -320,6 +347,16 @@ def _process_park(park: str, target_date: date, artefact: dict) -> Optional[dict
             "firms_count":   r.firms_count or 0,
         } for r in rows])
 
+        # Guard: without enough continuous history the rolling features (rain_30d/60d,
+        # ndvi_90d) are meaningless and the model produces garbage. Skip instead.
+        if len(history) < MIN_HISTORY_DAYS:
+            logger.warning(
+                "Skipping %s on %s — only %d days of history (need %d); a forecast here "
+                "would be unreliable. Fill the data gap first.",
+                park, target_date, len(history), MIN_HISTORY_DAYS,
+            )
+            return None
+
         X      = _compute_features(history, park, target_date)
         X_imp  = imputer.transform(pd.DataFrame(X, columns=FEATURE_COLS))
         raw_p  = np.column_stack([p[:, 1] for p in model.predict_proba(X_imp)])
@@ -395,6 +432,147 @@ def run_and_save(target_date: Optional[date] = None):
         db.close()
 
 
+def fill_range(start_date: date, end_date: date):
+    """Repair a data gap: fetch + persist daily_features and (over)write forecasts for
+    every date in [start_date, end_date], processed chronologically so each day's
+    90-day rolling window is complete. Loads the model and GEE once."""
+    from src.backend.database import SessionLocal
+    from src.backend.models.forecast import Forecast
+
+    try:
+        with open(PROD_MODEL, "rb") as f:
+            artefact = pickle.load(f)
+    except Exception:
+        logger.exception("Failed to load production model")
+        return
+
+    _init_gee()
+
+    total = (end_date - start_date).days + 1
+    d = start_date
+    i = 0
+    while d <= end_date:
+        i += 1
+        results = {}
+        for park in PARKS_CONFIG:                 # sequential — gentler on the APIs/GEE
+            r = _process_park(park, d, artefact)
+            if r:
+                results[park] = r
+
+        db = SessionLocal()
+        try:
+            for park, vals in results.items():
+                existing = db.query(Forecast).filter(
+                    Forecast.park == park, Forecast.date == d
+                ).first()
+                if existing:
+                    existing.fire_prob    = vals["fire"]
+                    existing.drought_prob = vals["drought"]
+                    existing.veg_prob     = vals["vegetation"]
+                    existing.computed_at  = datetime.now(timezone.utc)
+                else:
+                    db.add(Forecast(
+                        park=park, date=d,
+                        fire_prob=vals["fire"], drought_prob=vals["drought"], veg_prob=vals["vegetation"],
+                        computed_at=datetime.now(timezone.utc),
+                    ))
+            db.commit()
+        except Exception:
+            db.rollback()
+            logger.exception("save failed for %s", d)
+        finally:
+            db.close()
+
+        logger.info("[%d/%d] filled %s — %d/%d parks", i, total, d, len(results), len(PARKS_CONFIG))
+        d += timedelta(days=1)
+
+
+def repredict_range(start_date: date, end_date: date):
+    """Recompute forecasts from EXISTING daily_features (no API fetches) and update
+    the forecasts table. Use after a model/calibration change — fast, since it only
+    re-runs inference over data already in the DB."""
+    from src.backend.database import SessionLocal
+    from src.backend.models.forecast import Forecast
+    from src.backend.models.raw_features import DailyFeatures
+
+    try:
+        with open(PROD_MODEL, "rb") as f:
+            artefact = pickle.load(f)
+    except Exception:
+        logger.exception("Failed to load production model")
+        return
+    model       = artefact["model"]
+    imputer     = artefact["imputer"]
+    calibrators = artefact.get("calibrators")
+
+    total = (end_date - start_date).days + 1
+    d = start_date
+    i = 0
+    updated = 0
+    while d <= end_date:
+        i += 1
+        db = SessionLocal()
+        try:
+            for park in PARKS_CONFIG:
+                cutoff = d - timedelta(days=90)
+                rows = (
+                    db.query(DailyFeatures)
+                    .filter(DailyFeatures.park == park, DailyFeatures.date >= cutoff, DailyFeatures.date <= d)
+                    .order_by(DailyFeatures.date)
+                    .all()
+                )
+                if len(rows) < MIN_HISTORY_DAYS:
+                    continue
+                history = pd.DataFrame([{
+                    "date": r.date, "precipitation": r.precipitation, "temp_max": r.temp_max,
+                    "temp_min": r.temp_min, "ndvi": r.ndvi, "firms_count": r.firms_count or 0,
+                } for r in rows])
+
+                X     = _compute_features(history, park, d)
+                X_imp = imputer.transform(pd.DataFrame(X, columns=FEATURE_COLS))
+                raw_p = np.column_stack([p[:, 1] for p in model.predict_proba(X_imp)])
+                if calibrators:
+                    probs = np.column_stack([
+                        calibrators[k].predict_proba(raw_p[:, k:k+1])[:, 1] for k in range(raw_p.shape[1])
+                    ])
+                else:
+                    probs = raw_p
+                probs = np.clip(probs, 0, 1)
+
+                fc = db.query(Forecast).filter(Forecast.park == park, Forecast.date == d).first()
+                if fc:
+                    fc.fire_prob    = float(probs[0, 0])
+                    fc.drought_prob = float(probs[0, 1])
+                    fc.veg_prob     = float(probs[0, 2])
+                    fc.computed_at  = datetime.now(timezone.utc)
+                    updated += 1
+            db.commit()
+        except Exception:
+            db.rollback()
+            logger.exception("repredict failed for %s", d)
+        finally:
+            db.close()
+        if i % 20 == 0 or i == total:
+            logger.info("[%d/%d] repredicted up to %s (%d rows updated)", i, total, d, updated)
+        d += timedelta(days=1)
+
+    logger.info("Repredict complete — %d forecast rows updated.", updated)
+
+
 if __name__ == "__main__":
+    import argparse
+
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    run_and_save()
+    parser = argparse.ArgumentParser(description="Daily forecast job / gap-fill / repredict")
+    parser.add_argument("--fill-from", help="YYYY-MM-DD start date (gap-fill mode)")
+    parser.add_argument("--fill-to",   help="YYYY-MM-DD end date (gap-fill mode)")
+    parser.add_argument("--repredict-from", help="YYYY-MM-DD start (repredict from existing data)")
+    parser.add_argument("--repredict-to",   help="YYYY-MM-DD end (repredict from existing data)")
+    args = parser.parse_args()
+
+    if args.fill_from and args.fill_to:
+        fill_range(date.fromisoformat(args.fill_from), date.fromisoformat(args.fill_to))
+    elif args.repredict_from and args.repredict_to:
+        repredict_range(date.fromisoformat(args.repredict_from), date.fromisoformat(args.repredict_to))
+    else:
+        run_and_save()
