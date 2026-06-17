@@ -178,3 +178,35 @@ def national_overview(
                 veg_prob=row.veg_prob,
             ))
     return overview
+
+
+@router.get("/national-trend", summary="National daily-average risk over time (admin only)")
+def national_trend(
+    days: int = Query(default=60, ge=7, le=365),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """National daily average of each threat across all parks, for the last `days`."""
+    from datetime import timedelta
+    from sqlalchemy import func
+
+    latest = db.query(func.max(Forecast.date)).scalar()
+    if latest is None:
+        return []
+    cutoff = latest - timedelta(days=days - 1)   # inclusive range → exactly `days` dates
+    rows = (
+        db.query(
+            Forecast.date,
+            func.avg(Forecast.fire_prob),
+            func.avg(Forecast.drought_prob),
+            func.avg(Forecast.veg_prob),
+        )
+        .filter(Forecast.date >= cutoff)
+        .group_by(Forecast.date)
+        .order_by(Forecast.date)
+        .all()
+    )
+    return [
+        {"date": str(d), "fire": float(f), "drought": float(dr), "veg": float(v)}
+        for d, f, dr, v in rows
+    ]

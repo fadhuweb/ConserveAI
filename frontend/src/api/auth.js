@@ -18,5 +18,14 @@ export const resetPassword = (token, new_password) =>
 export const createUser = (payload) =>
   client.post("/auth/users", payload).then((r) => r.data);
 
+export const getMe = () =>
+  client.get("/auth/me").then((r) => r.data);
+
 export const listUsers = () =>
   client.get("/auth/users").then((r) => r.data);
+
+export const adminResetPassword = (userId) =>
+  client.post(`/auth/users/${userId}/reset-password`).then((r) => r.data);
+
+export const setUserActive = (userId, is_active) =>
+  client.post(`/auth/users/${userId}/active`, { is_active }).then((r) => r.data);

@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Tooltip } from "react-leaflet";
+import { useEffect, useRef, useState } from "react";
+import { MapContainer, TileLayer, Marker, Tooltip, GeoJSON, LayersControl } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Card, Row, Col, Table, Button, Alert, Spin } from "antd";
-import { useNavigate } from "react-router-dom";
-import { GlobalOutlined, WarningOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import { Card, Table, Button, Alert, Skeleton, Segmented } from "antd";
 import AppShell from "../components/AppShell";
-import { getParks, getNationalOverview } from "../api/forecasts";
+import NationalTrend from "../components/NationalTrend";
+import PriorityParks from "../components/PriorityParks";
+import parkBoundaries from "../data/parkBoundaries.json";
+import { getParks, getNationalOverview, getNationalTrend } from "../api/forecasts";
 import { riskColor, pct } from "../lib/risk";
 
 const NIGERIA_CENTER = [9.0, 8.6];
@@ -44,11 +45,13 @@ export default function NationalOverview() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [trend, setTrend] = useState([]);
+  const mapRef = useRef(null);
+  const [lens, setLens] = useState("max");   // colour lens: max | fire | drought | vegetation
 
   useEffect(() => {
-    Promise.all([getParks(), getNationalOverview()])
-      .then(([parks, overview]) => {
+    Promise.all([getParks(), getNationalOverview(), getNationalTrend()])
+      .then(([parks, overview, t]) => {
         const byId = Object.fromEntries(parks.map((p) => [p.id, p]));
         setRows(
           overview.map((o) => ({
@@ -58,6 +61,7 @@ export default function NationalOverview() {
             maxRisk: Math.max(o.fire_prob, o.drought_prob, o.veg_prob),
           }))
         );
+        setTrend(t);
       })
       .catch(() => setError("Failed to load the national overview."))
       .finally(() => setLoading(false));
@@ -67,11 +71,48 @@ export default function NationalOverview() {
   const avg = (k) => (rows.length ? rows.reduce((s, r) => s + r[k], 0) / rows.length : 0);
   const threats = [["Fire", avg("fire_prob")], ["Drought", avg("drought_prob")], ["Vegetation", avg("veg_prob")]];
   const dominant = threats.reduce((a, b) => (b[1] > a[1] ? b : a), threats[0]);
+  const topPark = rows.length ? [...rows].sort((a, b) => b.maxRisk - a.maxRisk)[0] : null;
+  // The single highest park × threat spike — the real "what needs attention", vs the average.
+  const spike = rows.length
+    ? rows.flatMap((r) => [["Fire", r.fire_prob], ["Drought", r.drought_prob], ["Vegetation", r.veg_prob]]
+        .map(([t, v]) => ({ park: r.display_name || r.park, threat: t, v })))
+        .sort((a, b) => b.v - a.v)[0]
+    : null;
+  const latestUpdate = rows.find((r) => r.latest_date)?.latest_date || "Pending";
 
-  const getThreatIcon = (name) => {
-    if (name === "Fire") return "🔥";
-    if (name === "Drought") return "💧";
-    return "🌿";
+  // value for the active threat lens ("max" = highest of the three)
+  const lensValue = (r) => !r ? 0
+    : lens === "fire" ? r.fire_prob
+    : lens === "drought" ? r.drought_prob
+    : lens === "vegetation" ? r.veg_prob
+    : r.maxRisk;
+  const focusPark = (r) => {
+    if (r?.lat != null && mapRef.current) {
+      mapRef.current.flyTo([r.lat, r.lon], 9, { duration: 0.8 });
+      mapRef.current.getContainer().scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
+  // park boundary polygons, styled by the active lens
+  const rowById = Object.fromEntries(rows.map((r) => [r.park, r]));
+  const boundaryStyle = (feature) => {
+    const r = rowById[feature.properties.park];
+    const color = r ? riskColor(lensValue(r)) : "#9aa5b1";
+    return {
+      color, weight: 2, fillColor: color,
+      fillOpacity: feature.properties.approx ? 0.10 : 0.28,
+      dashArray: feature.properties.approx ? "5 5" : null,
+    };
+  };
+  const onEachBoundary = (feature, layer) => {
+    const r = rowById[feature.properties.park];
+    const name = r?.display_name || feature.properties.name;
+    const extra = feature.properties.approx ? "<br/><i>approx. area</i>" : "";
+    layer.bindTooltip(
+      `<b>${name}</b><br/>Fire ${r ? pct(r.fire_prob) : "–"} · Drought ${r ? pct(r.drought_prob) : "–"} · Veg ${r ? pct(r.veg_prob) : "–"}${extra}`,
+      { sticky: true }
+    );
+    layer.on("click", () => focusPark(r));
   };
 
   const columns = [
@@ -80,28 +121,31 @@ export default function NationalOverview() {
       dataIndex: "display_name", 
       key: "park",
       render: (v, r) => (
-        <span className="park-link" onClick={() => navigate(`/park/${r.park}`)}>
-          🌳 {v || r.park}
+        <span className="park-link" onClick={() => focusPark(r)}>
+          {v || r.park}
         </span>
-      ) 
+      )
     },
-    { 
-      title: "Fire Threat", 
-      dataIndex: "fire_prob", 
-      key: "fire", 
-      render: (p) => <ThreatGauge p={p} /> 
+    {
+      title: "Fire Threat",
+      dataIndex: "fire_prob",
+      key: "fire",
+      sorter: (a, b) => a.fire_prob - b.fire_prob,
+      render: (p) => <ThreatGauge p={p} />
     },
-    { 
-      title: "Drought Threat", 
-      dataIndex: "drought_prob", 
-      key: "drought", 
-      render: (p) => <ThreatGauge p={p} /> 
+    {
+      title: "Drought Threat",
+      dataIndex: "drought_prob",
+      key: "drought",
+      sorter: (a, b) => a.drought_prob - b.drought_prob,
+      render: (p) => <ThreatGauge p={p} />
     },
-    { 
-      title: "Vegetation Threat", 
-      dataIndex: "veg_prob", 
-      key: "veg", 
-      render: (p) => <ThreatGauge p={p} /> 
+    {
+      title: "Vegetation Threat",
+      dataIndex: "veg_prob",
+      key: "veg",
+      sorter: (a, b) => a.veg_prob - b.veg_prob,
+      render: (p) => <ThreatGauge p={p} />
     },
     { 
       title: "Last Updated", 
@@ -113,12 +157,12 @@ export default function NationalOverview() {
       title: "Action",
       key: "action",
       render: (_, r) => (
-        <Button 
+        <Button
           className="action-btn"
           size="small"
-          onClick={() => navigate(`/park/${r.park}`)}
+          onClick={(e) => { e.stopPropagation(); focusPark(r); }}
         >
-          View details →
+          Locate on map
         </Button>
       )
     }
@@ -126,110 +170,141 @@ export default function NationalOverview() {
 
   return (
     <AppShell subtitle="National Overview">
-        <div style={{ marginBottom: 24 }}>
-          <h2>National Overview</h2>
-          <p className="muted" style={{ marginTop: 6, fontSize: 15 }}>
-            Consolidated 30-day probabilistic risk analysis across Nigeria's six national parks. Click any park to manage.
-          </p>
+        <div className="ops-page-title">
+          <div>
+            <h2>National Operations Dashboard</h2>
+            <p className="muted" style={{ marginTop: 6, fontSize: 14 }}>
+              30-day fire, drought, and vegetation threat monitoring across Nigeria's national parks.
+            </p>
+          </div>
+          <span className="ops-meta">Forecast updated {latestUpdate}</span>
         </div>
 
         {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 24, borderRadius: 12 }} />}
 
         {loading ? (
-          <div style={{ padding: 100, textAlign: "center" }}><Spin size="large" /></div>
+          <div>
+            <div className="dashboard-grid">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}><Skeleton active title={false} paragraph={{ rows: 2 }} /></Card>
+              ))}
+            </div>
+            <Card style={{ marginBottom: 24 }}><Skeleton active paragraph={{ rows: 3 }} /></Card>
+            <Card style={{ marginBottom: 24 }}><Skeleton.Node active style={{ width: "100%", height: 360 }} /></Card>
+            <Card><Skeleton active paragraph={{ rows: 4 }} /></Card>
+          </div>
         ) : (
           <>
-            {/* Stat Cards Section */}
-            <div className="dashboard-grid">
-              <div className="stat-card brand-top animate-fade-in-up">
-                <div className="stat-card-left">
-                  <span className="stat-card-title">Parks monitored</span>
-                  <span className="stat-card-value">{rows.length}</span>
-                  <span className="stat-card-sub">Active telemetry nodes</span>
-                </div>
-                <div className="stat-card-icon" style={{ background: "rgba(32, 92, 72, 0.08)", color: "var(--brand)" }}>
-                  <GlobalOutlined />
-                </div>
+            <div className="ops-alert-strip ops-alert-strip-three">
+              <div className="ops-alert-cell primary">
+                <span className="ops-alert-label">Today needs attention</span>
+                <span className="ops-alert-value">
+                  {highCount ? `${highCount} high-risk ${highCount === 1 ? "park" : "parks"}` : "No high-risk parks"}
+                </span>
+                <span className="ops-alert-note">
+                  {spike ? `Highest: ${spike.park} · ${spike.threat} ${pct(spike.v)}` : "Awaiting park forecasts."}
+                </span>
               </div>
-
-              <div className="stat-card danger-top animate-fade-in-up delay-1">
-                <div className="stat-card-left">
-                  <span className="stat-card-title">High-risk parks</span>
-                  <span className="stat-card-value" style={{ color: highCount ? "var(--hi)" : "inherit" }}>
-                    {highCount}
-                    {highCount > 0 && <span className="warning-pulse"></span>}
-                  </span>
-                  <span className="stat-card-sub">Require threat mitigation</span>
-                </div>
-                <div className="stat-card-icon" style={{ background: "rgba(211, 47, 47, 0.08)", color: "var(--hi)" }}>
-                  <WarningOutlined />
-                </div>
+              <div className="ops-alert-cell">
+                <span className="ops-alert-label">Dominant threat (avg)</span>
+                <span className="ops-alert-value">{dominant[0]}</span>
+                <span className="ops-alert-note">{pct(dominant[1])} national average</span>
               </div>
-
-              <div className="stat-card glow-top animate-fade-in-up delay-2">
-                <div className="stat-card-left">
-                  <span className="stat-card-title">Dominant threat</span>
-                  <span className="stat-card-value" style={{ color: "var(--brand)" }}>
-                    {getThreatIcon(dominant[0])} {dominant[0]}
-                  </span>
-                  <span className="stat-card-sub">{pct(dominant[1])} average probability</span>
-                </div>
-                <div className="stat-card-icon" style={{ background: "rgba(249, 168, 37, 0.08)", color: "var(--med)" }}>
-                  <ThunderboltOutlined />
-                </div>
+              <div className="ops-alert-cell">
+                <span className="ops-alert-label">Parks monitored</span>
+                <span className="ops-alert-value">{rows.length}</span>
+                <span className="ops-alert-note">Active forecast coverage</span>
               </div>
             </div>
 
-            {/* Interactive Map Card */}
-            <Card title="Interactive Risk Map" className="map-card animate-fade-in-up delay-1" styles={{ body: { padding: 0 } }}>
-              <MapContainer 
-                center={NIGERIA_CENTER} 
-                zoom={6} 
-                scrollWheelZoom={false}
-                style={{ height: 480, width: "100%" }}
-              >
-                {/* Beautiful clean high-contrast tile layer from CartoDB */}
-                <TileLayer 
-                  url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                />
-                {rows.filter((r) => r.lat != null).map((r) => (
-                  <Marker 
-                    key={r.park} 
-                    position={[r.lat, r.lon]} 
-                    icon={customMarkerIcon(riskColor(r.maxRisk))}
-                    eventHandlers={{
-                      click: () => navigate(`/park/${r.park}`),
-                    }}
-                  >
-                    <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                      <div className="tooltip-title">{r.display_name || r.park}</div>
-                      <div className="tooltip-row">
-                        <span>🔥 Fire Risk:</span>
-                        <span className="tooltip-val" style={{ color: riskColor(r.fire_prob) }}>{pct(r.fire_prob)}</span>
-                      </div>
-                      <div className="tooltip-row">
-                        <span>💧 Drought Risk:</span>
-                        <span className="tooltip-val" style={{ color: riskColor(r.drought_prob) }}>{pct(r.drought_prob)}</span>
-                      </div>
-                      <div className="tooltip-row">
-                        <span>🌿 Vegetation Degradation:</span>
-                        <span className="tooltip-val" style={{ color: riskColor(r.veg_prob) }}>{pct(r.veg_prob)}</span>
-                      </div>
-                      <div className="tooltip-prompt">Click to open dashboard</div>
-                    </Tooltip>
-                  </Marker>
-                ))}
-              </MapContainer>
-            </Card>
+            <div className="ops-command-grid">
+              <div>
+                <Card title="National risk map" className="map-card"
+                  styles={{ body: { padding: 0 } }}
+                  extra={
+                    <Segmented size="small" value={lens} onChange={setLens}
+                      options={[
+                        { label: "Highest", value: "max" },
+                        { label: "Fire", value: "fire" },
+                        { label: "Drought", value: "drought" },
+                        { label: "Vegetation", value: "vegetation" },
+                      ]} />
+                  }
+                >
+                  <div className="map-wrap">
+                    <MapContainer
+                      ref={mapRef}
+                      center={NIGERIA_CENTER}
+                      zoom={6}
+                      scrollWheelZoom={false}
+                      style={{ height: 560, width: "100%" }}
+                    >
+                      <LayersControl position="topright">
+                        <LayersControl.BaseLayer checked name="Map">
+                          <TileLayer
+                            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                            attribution='&copy; OpenStreetMap &copy; CARTO'
+                          />
+                        </LayersControl.BaseLayer>
+                        <LayersControl.BaseLayer name="Satellite">
+                          <TileLayer
+                            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                            attribution="Tiles &copy; Esri"
+                          />
+                        </LayersControl.BaseLayer>
+                        <LayersControl.BaseLayer name="Terrain">
+                          <TileLayer
+                            url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                            attribution="&copy; OpenTopoMap (CC-BY-SA)"
+                          />
+                        </LayersControl.BaseLayer>
+                      </LayersControl>
 
-            {/* Parks Forecasts List */}
-            <Card title="Parks Threat Forecast Summary" className="table-card animate-fade-in-up delay-2">
-              <Table 
-                columns={columns} 
-                dataSource={rows} 
-                pagination={false} 
-                size="large"
+                      <GeoJSON key={`${rows.length}-${lens}`} data={parkBoundaries} style={boundaryStyle} onEachFeature={onEachBoundary} />
+
+                      {rows.filter((r) => r.lat != null).map((r) => (
+                        <Marker
+                          key={r.park}
+                          position={[r.lat, r.lon]}
+                          icon={customMarkerIcon(riskColor(lensValue(r)))}
+                          eventHandlers={{ click: () => focusPark(r) }}
+                        >
+                          <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                            <div className="tooltip-title">{r.display_name || r.park}</div>
+                            <div className="tooltip-row"><span>Fire</span><span className="tooltip-val" style={{ color: riskColor(r.fire_prob) }}>{pct(r.fire_prob)}</span></div>
+                            <div className="tooltip-row"><span>Drought</span><span className="tooltip-val" style={{ color: riskColor(r.drought_prob) }}>{pct(r.drought_prob)}</span></div>
+                            <div className="tooltip-row"><span>Vegetation</span><span className="tooltip-val" style={{ color: riskColor(r.veg_prob) }}>{pct(r.veg_prob)}</span></div>
+                          </Tooltip>
+                        </Marker>
+                      ))}
+                    </MapContainer>
+                    <div className="map-legend">
+                      <span><i style={{ background: "#10b981" }} /> Low</span>
+                      <span><i style={{ background: "#f59e0b" }} /> Medium</span>
+                      <span><i style={{ background: "#ef4444" }} /> High</span>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              <div className="ops-stack">
+                <Card title="National trend indicators" className="ops-card">
+                  <NationalTrend data={trend} />
+                </Card>
+
+                <Card title="Priority parks" className="ops-card">
+                  <PriorityParks rows={rows} onLocate={focusPark} />
+                </Card>
+              </div>
+            </div>
+
+            <Card title="Park threat forecast summary" className="table-card" style={{ marginTop: 16 }}>
+              <Table
+                columns={columns}
+                dataSource={rows}
+                pagination={false}
+                size="middle"
+                onRow={(record) => ({ onClick: () => focusPark(record) })}
               />
             </Card>
           </>

@@ -25,3 +25,6 @@ class User(Base):
     # Set True for admin-provisioned accounts; forces a password change on first login
     # so the long-term password is known only to the manager, not the admin.
     must_change_password = Column(Boolean, nullable=False, default=False)
+
+    # Admins can deactivate an account to block sign-in without deleting its history.
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")

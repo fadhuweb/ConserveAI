@@ -103,14 +103,16 @@ PARKS_META = {
 }
 
 
-# Park bounding boxes (min_lon, min_lat, max_lon, max_lat), aligned to admin boundaries.
+# Park bounding boxes (min_lon, min_lat, max_lon, max_lat), derived from the real
+# WDPA boundary polygons (scripts/extract_park_boundaries.py) so the four zone
+# quadrants tile the actual park. Chad Basin uses its WDPA-centroid approximation.
 PARK_BBOX = {
-    "yankari":       (9.6,  9.3, 11.0, 10.3),
-    "cross_river":   (8.3,  5.5,  9.2,  6.4),
-    "gashaka_gumti": (11.0, 6.9, 12.6,  8.6),
-    "kainji_lake":   (4.2,  9.8,  5.1, 11.0),
-    "chad_basin":    (13.0, 12.2, 14.5, 13.5),
-    "old_oyo":       (3.5,  8.0,  4.5,  8.8),
+    "yankari":       (10.195, 9.561, 10.797, 10.070),
+    "cross_river":   (8.310,  5.096,  9.354,  6.467),
+    "gashaka_gumti": (11.164, 6.945, 12.208,  8.079),
+    "kainji_lake":   (3.680,  9.655,  5.306, 10.400),
+    "chad_basin":    (13.951, 12.100, 14.449, 12.590),
+    "old_oyo":       (3.581,  8.206,  4.343,  9.022),
 }
 
 

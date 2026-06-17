@@ -51,15 +51,7 @@ export default function LoginPage() {
             <div className="logo">🛡</div>
             <span className="wordmark">ConserveAI</span>
           </div>
-          <p className="tag">
-            Multi-threat probabilistic forecasting and budget-constrained intervention recommendation for Nigerian national parks.
-          </p>
-
-          {/* Floating visual preview widgets to elevate design */}
-          <div className="login-metrics">
-
-
-          </div>
+          {/* Distraction-free clean branding */}
         </div>
       </aside>
 

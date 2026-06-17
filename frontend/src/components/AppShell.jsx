@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Tooltip } from "antd";
 import {
-  DashboardOutlined, TeamOutlined,
+  DashboardOutlined, TeamOutlined, AppstoreOutlined,
   SettingOutlined, LogoutOutlined, MenuOutlined,
+  MenuFoldOutlined, MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../auth/AuthContext";
 
@@ -12,7 +14,19 @@ export default function AppShell({ subtitle, children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [open, setOpen] = useState(false);   // mobile sidebar toggle
+  const [open, setOpen] = useState(false);   // mobile drawer
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar_collapsed") === "1");
+
+  const toggleSidebar = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 900) {
+      setOpen((o) => !o);                       // mobile: open/close drawer
+    } else {
+      setCollapsed((c) => {                     // desktop: collapse to icon rail
+        localStorage.setItem("sidebar_collapsed", c ? "0" : "1");
+        return !c;
+      });
+    }
+  };
 
   const cleanName = (user?.username || "?").replace("manager_", "");
   const initials = cleanName.slice(0, 2).toUpperCase();
@@ -24,26 +38,37 @@ export default function AppShell({ subtitle, children }) {
     ? [
         { label: "National Overview", icon: <DashboardOutlined />, onClick: () => go("/national"), active: pathname === "/national" },
         { label: "Park Managers", icon: <TeamOutlined />, onClick: () => go("/managers"), active: pathname === "/managers" },
-        { label: "Settings", icon: <SettingOutlined />, onClick: () => go("/change-password"), active: pathname === "/change-password" },
+        { label: "Interventions", icon: <AppstoreOutlined />, onClick: () => go("/interventions"), active: pathname === "/interventions" },
+        { label: "Settings", icon: <SettingOutlined />, onClick: () => go("/settings"), active: pathname === "/settings" },
       ]
     : [
         { label: "My Park", icon: <DashboardOutlined />, onClick: () => go(home), active: pathname === home },
-        { label: "Settings", icon: <SettingOutlined />, onClick: () => go("/change-password"), active: pathname === "/change-password" },
+        { label: "Interventions", icon: <AppstoreOutlined />, onClick: () => go("/interventions"), active: pathname === "/interventions" },
+        { label: "Settings", icon: <SettingOutlined />, onClick: () => go("/settings"), active: pathname === "/settings" },
       ];
 
   return (
     <div className="shell">
-      <aside className={`sidebar ${open ? "open" : ""}`}>
-        <div className="sidebar-brand" onClick={() => { navigate(home); setOpen(false); }}>
-          <div className="brand-logo">🛡</div>
-          <span className="brand-name">ConserveAI</span>
+      <aside className={`sidebar ${open ? "open" : ""} ${collapsed ? "collapsed" : ""}`}>
+        <div className="sidebar-brand">
+          <div className="brand-id" onClick={() => { navigate(home); setOpen(false); }}>
+            <div className="brand-logo">🛡</div>
+            <span className="brand-name">ConserveAI</span>
+          </div>
+          <button className="brand-collapse" onClick={toggleSidebar}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+            {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          </button>
         </div>
 
         <nav className="sidebar-nav">
+          <div className="nav-section">Menu</div>
           {nav.map((item) => (
-            <button key={item.label} className={`nav-item ${item.active ? "active" : ""}`} onClick={item.onClick}>
-              {item.icon}<span>{item.label}</span>
-            </button>
+            <Tooltip key={item.label} title={collapsed ? item.label : null} placement="right">
+              <button className={`nav-item ${item.active ? "active" : ""}`} onClick={item.onClick}>
+                {item.icon}<span>{item.label}</span>
+              </button>
+            </Tooltip>
           ))}
         </nav>
 
@@ -55,7 +80,9 @@ export default function AppShell({ subtitle, children }) {
               <span className="su-role">{user?.role}</span>
             </div>
           </div>
-          <button className="logout-btn full" onClick={logout}><LogoutOutlined /> Log out</button>
+          <Tooltip title={collapsed ? "Log out" : null} placement="right">
+            <button className="logout-btn full" onClick={logout}><LogoutOutlined /> <span>Log out</span></button>
+          </Tooltip>
         </div>
       </aside>
 
@@ -63,7 +90,7 @@ export default function AppShell({ subtitle, children }) {
 
       <div className="shell-main">
         <header className="shell-header">
-          <button className="hamburger" onClick={() => setOpen(true)}><MenuOutlined /></button>
+          <button className="hamburger" onClick={toggleSidebar} title="Toggle sidebar"><MenuOutlined /></button>
           <div className="crumb">
             <span className="crumb-top">{isAdmin ? "National Administrator" : "Park Manager"}</span>
             <h1>{subtitle || (isAdmin ? "National Overview" : "Dashboard")}</h1>

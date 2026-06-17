@@ -46,5 +46,10 @@ class UserOut(BaseModel):
     email: str | None
     phone: str | None
     must_change_password: bool
+    is_active: bool = True
 
     model_config = {"from_attributes": True}
+
+
+class SetActiveRequest(BaseModel):
+    is_active: bool

@@ -17,5 +17,8 @@ export const getLatestForecast = (park) =>
 export const getNationalOverview = () =>
   client.get("/national-overview").then((r) => r.data);
 
+export const getNationalTrend = (days = 60) =>
+  client.get("/national-trend", { params: { days } }).then((r) => r.data);
+
 export const getDrivers = (park) =>
   client.get(`/forecasts/${park}/drivers`).then((r) => r.data);

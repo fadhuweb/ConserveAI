@@ -11,7 +11,7 @@ from src.backend.database import get_db
 from src.backend.models.user import User, Role
 from src.backend.schemas.auth import (
     LoginRequest, TokenResponse, CreateUserRequest, UserOut, ChangePasswordRequest,
-    ForgotPasswordRequest, ResetPasswordRequest,
+    ForgotPasswordRequest, ResetPasswordRequest, SetActiveRequest,
 )
 from src.backend.services.email import send_temporary_password, send_reset_link
 
@@ -23,6 +23,9 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
     user = db.query(User).filter(User.username == body.username).first()
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="This account has been deactivated. Contact your administrator.")
 
     token = create_access_token({"sub": user.username, "role": user.role, "park_id": user.park_id})
 
@@ -46,6 +49,11 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
 def logout(response: Response):
     response.delete_cookie("access_token")
     return {"message": "Logged out"}
+
+
+@router.get("/me", response_model=UserOut, summary="Current account's own profile")
+def me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 
 @router.get("/users", response_model=list[UserOut], summary="List all accounts (admin only)")
@@ -196,3 +204,49 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
     user.must_change_password = False   # they just set it themselves
     db.commit()
     return {"message": "Password updated. You can now log in with your new password."}
+
+
+# ── Admin account actions ───────────────────────────────────────────────────────
+
+@router.post("/users/{user_id}/reset-password", summary="Email a reset link to an account (admin only)")
+def admin_reset_password(user_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    """Admin-triggered reset. Emails the account holder a secure link so they set
+    their own new password — the admin never sees or sets it."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    if not user.email:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="This account has no email on file, so a reset link can't be sent")
+
+    token = create_reset_token(user.username)
+    reset_url = f"{settings.frontend_url}/reset-password?token={token}"
+    try:
+        send_reset_link(user.email, user.username, user.full_name, reset_url)
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY,
+                            detail=f"Could not send the reset email: {exc}")
+    return {"message": f"Reset link emailed to {user.email}."}
+
+
+@router.post("/users/{user_id}/active", summary="Activate or deactivate an account (admin only)")
+def set_user_active(
+    user_id: int,
+    body: SetActiveRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Block or restore sign-in for an account without deleting it. Admins cannot
+    deactivate their own account (prevents locking yourself out)."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    if user.id == admin.id and not body.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="You can't deactivate your own account")
+
+    user.is_active = body.is_active
+    db.commit()
+    db.refresh(user)
+    return {"message": f"Account {'activated' if body.is_active else 'deactivated'}.",
+            "is_active": user.is_active}

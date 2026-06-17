@@ -54,5 +54,8 @@ Thumbs.db
 *.log
 logs/
 
+# Raw WDPA shapefile download (large; extracted boundaries are committed as
+# frontend/src/data/parkBoundaries.json instead)
+data/wdpa/
 
 DEMO_SCRIPT.md

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Card, Table, Tag, Button, Modal, Form, Input, Select, Alert } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { Card, Table, Tag, Button, Modal, Form, Input, Select, Alert, Space, Popconfirm } from "antd";
+import { PlusOutlined, KeyOutlined } from "@ant-design/icons";
 import AppShell from "../components/AppShell";
-import { listUsers, createUser } from "../api/auth";
+import { listUsers, createUser, adminResetPassword, setUserActive } from "../api/auth";
 import { getParks } from "../api/forecasts";
+
+const me = JSON.parse(localStorage.getItem("conserveai_user") || "{}");
 
 export default function Managers() {
   const [users, setUsers] = useState([]);
@@ -22,6 +24,25 @@ export default function Managers() {
       .finally(() => setLoading(false));
   };
   useEffect(load, []);
+
+  const onReset = async (r) => {
+    try {
+      const res = await adminResetPassword(r.id);
+      setResult(res.message);
+    } catch (e) {
+      Modal.error({ title: "Could not send reset", content: e?.response?.data?.detail || "Something went wrong." });
+    }
+  };
+
+  const onToggleActive = async (r, active) => {
+    try {
+      await setUserActive(r.id, active);
+      setResult(`${r.username} ${active ? "reactivated" : "deactivated"}.`);
+      load();
+    } catch (e) {
+      Modal.error({ title: "Could not update account", content: e?.response?.data?.detail || "Something went wrong." });
+    }
+  };
 
   const onCreate = async (vals) => {
     setBusy(true);
@@ -46,8 +67,35 @@ export default function Managers() {
       render: (r) => <Tag color={r === "admin" ? "gold" : "green"}>{r}</Tag> },
     { title: "Park", dataIndex: "park_id", key: "park",
       render: (v) => v ? (parks.find((p) => p.id === v)?.display_name || v) : <span className="muted">all parks</span> },
-    { title: "Status", dataIndex: "must_change_password", key: "status",
-      render: (m) => m ? <Tag color="orange">Pending first login</Tag> : <Tag color="green">Active</Tag> },
+    { title: "Status", key: "status",
+      render: (_, r) => !r.is_active
+        ? <Tag color="red">Deactivated</Tag>
+        : r.must_change_password ? <Tag color="orange">Pending first login</Tag> : <Tag color="green">Active</Tag> },
+    { title: "Actions", key: "actions", render: (_, r) => (
+      <Space size="small">
+        <Popconfirm
+          title="Send reset link?"
+          description={r.email ? `A reset link will be emailed to ${r.email}.` : "No email on file for this account."}
+          okText="Send link" onConfirm={() => onReset(r)} disabled={!r.email}
+        >
+          <Button size="small" icon={<KeyOutlined />} disabled={!r.email}>Reset password</Button>
+        </Popconfirm>
+        {r.username === me.username ? (
+          <Tag>You</Tag>
+        ) : r.is_active ? (
+          <Popconfirm
+            title={`Deactivate ${r.username}?`}
+            description="They won't be able to sign in until reactivated."
+            okText="Deactivate" okButtonProps={{ danger: true }}
+            onConfirm={() => onToggleActive(r, false)}
+          >
+            <Button size="small" danger>Deactivate</Button>
+          </Popconfirm>
+        ) : (
+          <Button size="small" type="primary" ghost onClick={() => onToggleActive(r, true)}>Reactivate</Button>
+        )}
+      </Space>
+    ) },
   ];
 
   return (
@@ -61,7 +109,8 @@ export default function Managers() {
         title="Accounts"
         extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>Add manager</Button>}
       >
-        <Table rowKey="id" columns={columns} dataSource={users} loading={loading} pagination={false} />
+        <Table rowKey="id" columns={columns} dataSource={users} loading={loading} pagination={false}
+          rowClassName={(r) => (r.is_active ? "" : "row-inactive")} />
       </Card>
 
       <Modal
