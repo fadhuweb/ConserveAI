@@ -18,7 +18,7 @@ export default function PasswordRequirements({ value }) {
       {RULES.map((r) => {
         const ok = r.test(p);
         return (
-          <li key={r.label} style={{ color: ok ? "#43A047" : "var(--muted)" }}>
+          <li key={r.label} style={{ color: ok ? "var(--lo)" : "var(--muted)" }}>
             {ok ? <CheckCircleFilled /> : <CloseCircleOutlined />} {r.label}
           </li>
         );

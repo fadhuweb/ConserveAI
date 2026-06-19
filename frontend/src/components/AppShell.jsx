@@ -4,7 +4,7 @@ import { Tooltip } from "antd";
 import {
   DashboardOutlined, TeamOutlined, AppstoreOutlined,
   SettingOutlined, LogoutOutlined, MenuOutlined,
-  MenuFoldOutlined, MenuUnfoldOutlined,
+  MenuFoldOutlined, MenuUnfoldOutlined, SafetyCertificateFilled,
 } from "@ant-design/icons";
 import { useAuth } from "../auth/AuthContext";
 
@@ -28,8 +28,11 @@ export default function AppShell({ subtitle, children }) {
     }
   };
 
-  const cleanName = (user?.username || "?").replace("manager_", "");
-  const initials = cleanName.slice(0, 2).toUpperCase();
+  // Prefer the full name (backfilled into the auth context); fall back to the
+  // username. Initials use the same algorithm as the Settings hero so they match.
+  const displayName = user?.full_name || (user?.username || "?").replace(/^manager_/, "").replace(/_/g, " ");
+  const initials = displayName.replace(/[^a-zA-Z ]/g, "").split(" ").filter(Boolean)
+    .slice(0, 2).map((s) => s[0]).join("").toUpperCase() || "?";
   const isAdmin = user?.role === "admin";
   const home = isAdmin ? "/national" : `/park/${user?.park_id}`;
   const go = (to) => { navigate(to); setOpen(false); };
@@ -52,7 +55,7 @@ export default function AppShell({ subtitle, children }) {
       <aside className={`sidebar ${open ? "open" : ""} ${collapsed ? "collapsed" : ""}`}>
         <div className="sidebar-brand">
           <div className="brand-id" onClick={() => { navigate(home); setOpen(false); }}>
-            <div className="brand-logo">🛡</div>
+            <div className="brand-logo"><SafetyCertificateFilled /></div>
             <span className="brand-name">ConserveAI</span>
           </div>
           <button className="brand-collapse" onClick={toggleSidebar}
@@ -76,7 +79,7 @@ export default function AppShell({ subtitle, children }) {
           <div className="sidebar-user">
             <div className="avatar">{initials}</div>
             <div className="su-meta">
-              <span className="su-name">{cleanName.replace("_", " ")}</span>
+              <span className="su-name">{displayName}</span>
               <span className="su-role">{user?.role}</span>
             </div>
           </div>

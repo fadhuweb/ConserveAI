@@ -19,7 +19,7 @@ export default function ZonePriority({ zones, weights, onChange }) {
           <span style={{ fontSize: 14 }}>{z.name}</span>
           <Select
             size="small"
-            value={weights[z.id] || 1}
+            value={weights[z.id] || 2}
             onChange={(w) => set(z.id, w)}
             options={LEVELS}
             style={{ width: 120 }}

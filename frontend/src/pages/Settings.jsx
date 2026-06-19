@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, Tag, Skeleton, Alert } from "antd";
 import {
-  UserOutlined, MailOutlined, PhoneOutlined,
-  IdcardOutlined, EnvironmentOutlined,
+  PhoneOutlined, IdcardOutlined, EnvironmentOutlined,
 } from "@ant-design/icons";
 import AppShell from "../components/AppShell";
 import * as authApi from "../api/auth";
@@ -27,10 +26,10 @@ export default function Settings() {
   const initials = display.replace(/[^a-zA-Z ]/g, "").split(" ").filter(Boolean)
     .slice(0, 2).map((s) => s[0]).join("").toUpperCase() || "?";
 
+  // Name, role and email live in the hero above — the tiles show the rest, so
+  // nothing is duplicated and the three fill one clean row.
   const fields = [
-    { icon: <UserOutlined />, label: "Full name", value: me?.full_name },
     { icon: <IdcardOutlined />, label: "Username", value: me?.username },
-    { icon: <MailOutlined />, label: "Email", value: me?.email },
     { icon: <PhoneOutlined />, label: "Phone", value: me?.phone },
     { icon: <EnvironmentOutlined />, label: "Assigned park",
       value: me?.park_id ? parkName(me.park_id) : "All parks (national)" },

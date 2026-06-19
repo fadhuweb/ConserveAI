@@ -84,7 +84,7 @@ export default function ParkDetail() {
     ])
       .then(([m, fc, zs, dr]) => {
         setMeta(m); setForecasts(fc); setZones(zs); setDrivers(dr);
-        setZoneWeights(Object.fromEntries(zs.map((z) => [z.id, 1])));   // equal = even split
+        setZoneWeights(Object.fromEntries(zs.map((z) => [z.id, 2])));   // Medium = neutral, equal split
       })
       .catch(() => setError("Failed to load park data."))
       .finally(() => setLoading(false));
@@ -110,7 +110,22 @@ export default function ParkDetail() {
   };
 
   const latest = forecasts.length ? forecasts[forecasts.length - 1] : null;
-  const weekAgo = forecasts.length >= 8 ? forecasts[forecasts.length - 8] : forecasts[0];
+  // "A week ago" by DATE, not by row position — the forecast series can have gaps
+  // (missed daily runs), so counting back 8 rows could land ~2 weeks back and
+  // mislabel the delta. Pick the forecast nearest to (latest − 7 days); if none
+  // is within 4 days of that mark, we don't have a reliable weekly comparison.
+  const weekAgo = (() => {
+    if (!latest || forecasts.length < 2) return null;
+    const target = new Date(latest.date);
+    target.setDate(target.getDate() - 7);
+    let best = null, bestDiff = Infinity;
+    for (const f of forecasts) {
+      if (f === latest) continue;
+      const diff = Math.abs(new Date(f.date) - target);
+      if (diff < bestDiff) { bestDiff = diff; best = f; }
+    }
+    return bestDiff <= 4 * 86400000 ? best : null;   // within 4 days of the 7-day mark
+  })();
   const deltaFor = (pk) => (latest && weekAgo ? latest[pk] - weekAgo[pk] : null);
   const focusKey = focus ? focus.toLowerCase() : null;   // drivers use lowercase keys
 

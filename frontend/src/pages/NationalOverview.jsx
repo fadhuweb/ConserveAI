@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, Tooltip, GeoJSON, LayersControl } from "react-leaflet";
-import L from "leaflet";
+import { MapContainer, TileLayer, GeoJSON, LayersControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Card, Table, Button, Alert, Skeleton, Segmented } from "antd";
 import AppShell from "../components/AppShell";
@@ -12,16 +11,33 @@ import { riskColor, pct } from "../lib/risk";
 
 const NIGERIA_CENTER = [9.0, 8.6];
 
-// Custom HTML pulsing marker for the Leaflet map
-const customMarkerIcon = (color) => L.divIcon({
-  className: "custom-pulse-marker",
-  html: `
-    <div class="pulse-dot" style="background-color: ${color}"></div>
-    <div class="pulse-ring" style="border-color: ${color}"></div>
-  `,
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
-});
+// Marker positions are derived from the park's real boundary (same source as the
+// polygons), so a marker is always centred on its park instead of drifting off it.
+function ringCentroid(ring) {
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [x0, y0] = ring[i], [x1, y1] = ring[i + 1];
+    const cross = x0 * y1 - x1 * y0;
+    a += cross; cx += (x0 + x1) * cross; cy += (y0 + y1) * cross;
+  }
+  a *= 0.5;
+  if (Math.abs(a) < 1e-9) {                       // degenerate → average the vertices
+    const xs = ring.map((p) => p[0]), ys = ring.map((p) => p[1]);
+    return [ys.reduce((s, v) => s + v, 0) / ys.length, xs.reduce((s, v) => s + v, 0) / xs.length];
+  }
+  return [cy / (6 * a), cx / (6 * a)];             // [lat, lon]
+}
+function featureCentroid(feature) {
+  const g = feature.geometry;
+  let ring = g.coordinates[0];
+  if (g.type === "MultiPolygon") {                // use the largest polygon's outer ring
+    g.coordinates.forEach((poly) => { if (poly[0].length > ring.length) ring = poly[0]; });
+  }
+  return ringCentroid(ring);
+}
+const PARK_CENTROID = Object.fromEntries(
+  parkBoundaries.features.map((f) => [f.properties.park, featureCentroid(f)])
+);
 
 // Graphical threat gauge for table rows
 const ThreatGauge = ({ p }) => {
@@ -87,8 +103,9 @@ export default function NationalOverview() {
     : lens === "vegetation" ? r.veg_prob
     : r.maxRisk;
   const focusPark = (r) => {
-    if (r?.lat != null && mapRef.current) {
-      mapRef.current.flyTo([r.lat, r.lon], 9, { duration: 0.8 });
+    const pos = PARK_CENTROID[r?.park] || (r?.lat != null ? [r.lat, r.lon] : null);
+    if (pos && mapRef.current) {
+      mapRef.current.flyTo(pos, 9, { duration: 0.8 });
       mapRef.current.getContainer().scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
@@ -261,27 +278,11 @@ export default function NationalOverview() {
                       </LayersControl>
 
                       <GeoJSON key={`${rows.length}-${lens}`} data={parkBoundaries} style={boundaryStyle} onEachFeature={onEachBoundary} />
-
-                      {rows.filter((r) => r.lat != null).map((r) => (
-                        <Marker
-                          key={r.park}
-                          position={[r.lat, r.lon]}
-                          icon={customMarkerIcon(riskColor(lensValue(r)))}
-                          eventHandlers={{ click: () => focusPark(r) }}
-                        >
-                          <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                            <div className="tooltip-title">{r.display_name || r.park}</div>
-                            <div className="tooltip-row"><span>Fire</span><span className="tooltip-val" style={{ color: riskColor(r.fire_prob) }}>{pct(r.fire_prob)}</span></div>
-                            <div className="tooltip-row"><span>Drought</span><span className="tooltip-val" style={{ color: riskColor(r.drought_prob) }}>{pct(r.drought_prob)}</span></div>
-                            <div className="tooltip-row"><span>Vegetation</span><span className="tooltip-val" style={{ color: riskColor(r.veg_prob) }}>{pct(r.veg_prob)}</span></div>
-                          </Tooltip>
-                        </Marker>
-                      ))}
                     </MapContainer>
                     <div className="map-legend">
-                      <span><i style={{ background: "#10b981" }} /> Low</span>
-                      <span><i style={{ background: "#f59e0b" }} /> Medium</span>
-                      <span><i style={{ background: "#ef4444" }} /> High</span>
+                      <span><i style={{ background: "var(--lo)" }} /> Low</span>
+                      <span><i style={{ background: "var(--med)" }} /> Medium</span>
+                      <span><i style={{ background: "var(--hi)" }} /> High</span>
                     </div>
                   </div>
                 </Card>

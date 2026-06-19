@@ -34,7 +34,20 @@ const SparklineTooltip = ({ active, payload, label, threatLabel, color }) => {
 export default function NationalTrend({ data }) {
   if (!data || data.length === 0) return <p className="muted">No trend data yet.</p>;
   const latest = data[data.length - 1];
-  const weekAgo = data[Math.max(0, data.length - 8)];   // ~7 days earlier
+  // "A week ago" by DATE, not row position — the series can have gaps from missed
+  // daily runs. Pick the point nearest (latest − 7 days), within a 4-day tolerance.
+  const weekAgo = (() => {
+    if (data.length < 2) return null;
+    const target = new Date(latest.date);
+    target.setDate(target.getDate() - 7);
+    let best = null, bestDiff = Infinity;
+    for (const d of data) {
+      if (d === latest) continue;
+      const diff = Math.abs(new Date(d.date) - target);
+      if (diff < bestDiff) { bestDiff = diff; best = d; }
+    }
+    return bestDiff <= 4 * 86400000 ? best : null;
+  })();
 
   return (
     <div className="trend-row">

@@ -18,6 +18,27 @@
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-border: rgba(255, 255, 255, 0.8);
   --glass-shadow: 0 8px 32px 0 rgba(6, 78, 59, 0.04);
+
+  /* ── Design tokens (adopt progressively) ── */
+  /* Radius scale */
+  --r-xs: 8px;    /* chips, inputs, small bars */
+  --r-sm: 12px;   /* inner panels, buttons, tiles */
+  --r-md: 16px;   /* cards, banners */
+  --r-lg: 20px;   /* hero / large surfaces */
+  --r-pill: 999px;
+  /* Spacing scale */
+  --sp-1: 6px;
+  --sp-2: 10px;
+  --sp-3: 16px;
+  --sp-4: 24px;
+  --sp-5: 32px;
+  /* Type scale */
+  --fs-xs: 11.5px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 26px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,6 +53,9 @@ body {
 
 .muted { color: var(--muted); }
 .error { color: var(--hi); font-size: 14px; margin: 4px 0; }
+
+/* Unify card radius: AntD cards default to ~8px; match the 16px custom surfaces */
+.ant-card { border-radius: var(--r-md); }
 button.link { background: none; border: none; color: var(--drought); cursor: pointer; font-size: 14px; font-weight: 500; transition: color 0.2s; }
 button.link:hover { color: #1565C0; text-decoration: underline; }
 
@@ -461,15 +485,16 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 
 .topbar .brand { display: flex; align-items: center; gap: 12px; }
 
-.brand-logo { 
-  width: 36px; 
-  height: 36px; 
-  border-radius: 10px; 
-  font-size: 18px;
-  display: flex; 
-  align-items: center; 
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-xs);
+  font-size: 20px;
+  color: #fff;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3cd090, #13573e); 
+  background: linear-gradient(135deg, #3cd090, #13573e);
   box-shadow: 0 4px 10px rgba(0,0,0,.15);
 }
 
@@ -523,7 +548,7 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 
 /* Settings page */
 .settings-hero { display: flex; align-items: center; gap: 20px; padding: 24px 28px;
-  border-radius: 20px; margin-bottom: 24px; color: #fff;
+  border-radius: var(--r-lg); margin-bottom: 24px; color: #fff;
   background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%);
   box-shadow: 0 10px 30px rgba(6, 78, 59, 0.08); max-width: 980px; }
 .settings-hero.admin { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
@@ -552,7 +577,7 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 .content h2 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; color: var(--brand); }
 
 /* ── park profile header ── */
-.park-header { position: relative; overflow: hidden; border-radius: 20px;
+.park-header { position: relative; overflow: hidden; border-radius: var(--r-lg);
   padding: 30px 34px; color: #fff; display: flex; align-items: center;
   justify-content: space-between; gap: 20px; margin-bottom: 22px;
   box-shadow: 0 16px 36px rgba(15, 61, 46, .20); }
@@ -599,7 +624,7 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 .gauge-pct { font-size: 32px; font-weight: 800; }
 .gauge-level { font-size: 11px; fill: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .gauge-delta { font-size: 11.5px; font-weight: 700; margin-top: 2px; }
-.gauge-delta.up { color: #D32F2F; }
+.gauge-delta.up { color: var(--hi); }
 .gauge-delta.down { color: #2E7D32; }
 .gauge-delta.flat { color: var(--muted); font-weight: 600; }
 .gauge-tile.clickable { cursor: pointer; }
@@ -610,15 +635,15 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 
 /* Operational status banner — distinct from the admin stat tiles */
 .status-banner { display: flex; align-items: flex-start; gap: 11px; padding: 13px 16px;
-  border-radius: 14px; margin-bottom: 16px; font-size: 14px; line-height: 1.5;
+  border-radius: var(--r-md); margin-bottom: 16px; font-size: 14px; line-height: 1.5;
   border: 1px solid var(--line); background: #fff; }
 .status-banner .status-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; flex: none; }
 .status-banner.high { background: #FEF2F2; border-color: #FBD9D9; }
-.status-banner.high .status-dot { background: #D32F2F; box-shadow: 0 0 0 4px #D32F2F22; }
+.status-banner.high .status-dot { background: var(--hi); box-shadow: 0 0 0 4px color-mix(in srgb, var(--hi) 14%, transparent); }
 .status-banner.medium { background: #FFFBEB; border-color: #FAE7BD; }
-.status-banner.medium .status-dot { background: #F9A825; box-shadow: 0 0 0 4px #F9A82522; }
+.status-banner.medium .status-dot { background: var(--med); box-shadow: 0 0 0 4px color-mix(in srgb, var(--med) 14%, transparent); }
 .status-banner.low { background: #F1FaF4; border-color: #CDEBD7; }
-.status-banner.low .status-dot { background: #43A047; box-shadow: 0 0 0 4px #43A04722; }
+.status-banner.low .status-dot { background: var(--lo); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lo) 14%, transparent); }
 
 /* Two-column operational layout: chart (wider) + drivers */
 .park-cols { display: grid; grid-template-columns: 1.45fr 1fr; gap: 16px; align-items: start; margin-bottom: 16px; }
@@ -715,7 +740,7 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 .budget-fill { height: 100%; border-radius: 7px; transition: width .6s cubic-bezier(.16, 1, .3, 1); }
 .budget-fill.full { background: linear-gradient(90deg, #2E9E6B, #1d6b4f); }
 .budget-fill.mid  { background: linear-gradient(90deg, #4FA3E0, #1976D2); }
-.budget-fill.low  { background: linear-gradient(90deg, #F6C453, #F9A825); }
+.budget-fill.low  { background: linear-gradient(90deg, #fbbf24, var(--med)); }
 .budget-sub { font-size: 12.5px; margin-top: 7px; }
 
 /* ── zone deployment breakdown ── */
@@ -733,12 +758,13 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 @media (max-width: 640px) { .zone-grid { grid-template-columns: 1fr; } }
 
 /* ── intervention catalog ── */
-.catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
 .catalog-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px;
+  display: flex; flex-direction: column;
   box-shadow: 0 4px 14px rgba(15, 61, 46, .04); transition: transform .2s ease, box-shadow .2s ease; }
 .catalog-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(15, 61, 46, .08); }
-.cat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-.cat-name { font-weight: 700; font-size: 15.5px; color: var(--ink); }
+.cat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.cat-name { font-weight: 700; font-size: 15.5px; line-height: 1.3; color: var(--ink); min-height: 2.6em; }
 .cat-meta { font-size: 13.5px; margin-bottom: 14px; }
 .cat-eff { display: flex; flex-direction: column; gap: 8px; }
 .eff-row { display: flex; align-items: center; gap: 10px; }
@@ -746,7 +772,7 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 .eff-track { flex: 1; height: 8px; background: #EEF1F5; border-radius: 99px; overflow: hidden; }
 .eff-bar { height: 100%; border-radius: 99px; transition: width .5s ease; }
 .eff-val { width: 36px; text-align: right; font-size: 12.5px; font-weight: 700; }
-.cat-cite { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+.cat-cite { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line);
   font-size: 11.5px; color: var(--muted); font-style: italic; }
 
 @media (max-width: 760px) {
@@ -871,7 +897,7 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 
 /* ── map panel styling ── */
 .map-card {
-  border-radius: 20px !important;
+  border-radius: var(--r-md) !important;
   border: 1.5px solid var(--line) !important;
   box-shadow: 0 4px 20px rgba(15, 61, 46, 0.02) !important;
   overflow: hidden;
@@ -1237,14 +1263,20 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 
 .ops-card,
 .ops-card.ant-card,
+/* Card-level surfaces → card radius token */
 .map-card,
 .table-card,
+.stat-card {
+  border-radius: var(--r-md) !important;
+  border-color: #dbe4ea !important;
+  box-shadow: none !important;
+}
+/* Inner tiles → smaller radius token */
 .gauge-tile,
-.stat-card,
 .catalog-card,
 .zone-card,
 .settings-tile {
-  border-radius: 10px !important;
+  border-radius: var(--r-sm) !important;
   border-color: #dbe4ea !important;
   box-shadow: none !important;
 }
@@ -1282,7 +1314,7 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 /* ── Park ops console (action-first) ── */
 .park-statusbar {
   display: flex; align-items: center; flex-wrap: wrap; gap: 6px 4px;
-  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  background: #fff; border: 1px solid var(--line); border-radius: var(--r-sm);
   padding: 10px 18px; margin-bottom: 14px;
 }
 .psb-item { display: flex; align-items: baseline; gap: 8px; padding: 0 4px; }
@@ -1300,7 +1332,7 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 /* Recommended next action callout */
 .next-action {
   display: flex; gap: 11px; align-items: flex-start; margin-bottom: 18px;
-  padding: 13px 15px; border-radius: 13px;
+  padding: 13px 15px; border-radius: var(--r-sm);
   background: linear-gradient(120deg, #eafaf1, #f3fbf6); border: 1px solid #cdebd7;
 }
 .na-icon { color: #1d6b4f; font-size: 13px; margin-top: 3px; flex: none; }
@@ -1326,7 +1358,7 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 .rc-bar { height: 7px; border-radius: 5px; background: #EDF1F5; overflow: hidden; }
 .rc-fill { height: 100%; border-radius: 5px; transition: width .5s cubic-bezier(.16, 1, .3, 1); }
 .rc-delta { font-size: 11.5px; font-weight: 700; margin-top: 9px; }
-.rc-delta.up { color: #D32F2F; }
+.rc-delta.up { color: var(--hi); }
 .rc-delta.down { color: #2E7D32; }
 .rc-delta.flat { color: var(--muted); font-weight: 600; }
 
