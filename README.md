@@ -169,7 +169,3 @@ notebooks/        00_model_demo + supporting analysis notebooks
 docs/             design spec, mockups, screenshots, demo script
 results/          trained models, metrics, production model
 ```
-
-## License
-
-MIT
