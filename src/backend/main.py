@@ -14,6 +14,7 @@ from src.backend.config import settings
 from src.backend.routes.auth import router as auth_router
 from src.backend.routes.forecasts import router as forecasts_router
 from src.backend.routes.recommendations import router as recommendations_router
+from src.backend.routes.jobs import router as jobs_router
 from src.backend.jobs.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
@@ -25,10 +26,14 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    start_scheduler()
+    # In production the external GitHub Actions cron triggers POST /jobs/run-daily-forecast
+    # instead of the in-process scheduler (which can't fire on a scaled-to-zero container).
+    if settings.environment != "production":
+        start_scheduler()
     logger.info("ConserveAI backend starting  (env=%s)", settings.environment)
     yield
-    stop_scheduler()
+    if settings.environment != "production":
+        stop_scheduler()
     logger.info("ConserveAI backend shut down.")
 
 
@@ -60,9 +65,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Allow local dev origins plus the deployed frontend (FRONTEND_URL → the Vercel app).
+_cors_origins = ["http://localhost:3000", "http://localhost:5173"]
+if settings.frontend_url and settings.frontend_url not in _cors_origins:
+    _cors_origins.append(settings.frontend_url.rstrip("/"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,6 +81,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(forecasts_router)
 app.include_router(recommendations_router)
+app.include_router(jobs_router)
 
 
 @app.get("/health", tags=["system"], summary="Service + database health check")

@@ -20,7 +20,11 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     log_level: str = "INFO"
-    frontend_url: str = "http://localhost:5173"   # used to build the password-reset link
+    frontend_url: str = "http://localhost:5173"   # used to build the password-reset link + CORS
+
+    # Shared secret the external scheduler (GitHub Actions cron) sends to trigger
+    # the daily job in production. Empty = the endpoint is disabled.
+    job_trigger_token: str = ""
 
     # Email (Gmail SMTP) — used to send new managers their temporary password
     smtp_host: str = "smtp.gmail.com"

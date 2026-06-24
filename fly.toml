@@ -1,0 +1,28 @@
+# Fly.io config for the ConserveAI backend.
+# Create/rename the app with: fly launch --no-deploy  (or edit `app` below).
+# Region "fra" (Frankfurt) matches the Neon database region for low DB latency.
+app = "conserveai-api"
+primary_region = "fra"
+
+[build]
+
+[env]
+  ENVIRONMENT = "production"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0   # scale to zero; the daily cron ping wakes it
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"   # bump to 1gb if the daily job OOMs during fetch
+
+[checks.health]
+  type = "http"
+  path = "/health"
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "20s"

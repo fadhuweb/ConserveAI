@@ -1,0 +1,23 @@
+name: Daily forecast
+
+# Triggers the production daily-forecast job by pinging the protected endpoint on
+# Fly. Runs independently of whether the app is awake (the request wakes it).
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   API_BASE_URL       e.g. https://conserveai-api.fly.dev   (no trailing slash)
+#   JOB_TRIGGER_TOKEN  same value set as the Fly secret JOB_TRIGGER_TOKEN
+
+on:
+  schedule:
+    - cron: "0 4 * * *"      # 04:00 UTC ≈ 05:00 Africa/Lagos (after upstream data posts)
+  workflow_dispatch: {}        # allow manual runs for testing
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger run-daily-forecast
+        run: |
+          curl -fsS -X POST "${{ secrets.API_BASE_URL }}/jobs/run-daily-forecast" \
+            -H "X-Job-Token: ${{ secrets.JOB_TRIGGER_TOKEN }}" \
+            --max-time 300 -w "\nHTTP %{http_code}\n"

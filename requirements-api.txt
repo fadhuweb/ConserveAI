@@ -1,0 +1,32 @@
+# Slim runtime requirements for the deployed API + daily-forecast job.
+# Excludes training-only / dev libs from requirements.txt: torch, xgboost, shap,
+# matplotlib, nbconvert, ipykernel, pyarrow, pytest, httpx.
+# The production model (results/production/model.pkl) is a scikit-learn artefact,
+# so only numpy + scikit-learn are needed to load and run it.
+
+# Data
+pandas>=2.0
+numpy>=1.26
+
+# External data APIs (used by the daily-forecast job)
+requests>=2.31
+python-dotenv>=1.0
+earthengine-api>=0.1.390
+openmeteo-requests>=1.2
+
+# Model inference
+scikit-learn>=1.4
+
+# Optimizer (ILP recommender)
+pulp>=2.7
+
+# Backend
+fastapi>=0.110
+uvicorn[standard]>=0.27
+sqlalchemy>=2.0
+psycopg2-binary>=2.9
+python-jose[cryptography]>=3.3
+bcrypt>=4.0
+python-multipart>=0.0.9
+apscheduler>=3.10
+pydantic-settings>=2.0
