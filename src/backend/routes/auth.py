@@ -18,6 +18,13 @@ from src.backend.services.email import send_temporary_password, send_reset_link
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _cookie_attrs() -> dict:
+    """Auth-cookie security attributes by environment. Cross-domain (Vercel ↔ Fly)
+    needs SameSite=None + Secure; local http dev uses Lax (Secure would break http)."""
+    is_prod = settings.environment == "production"
+    return {"httponly": True, "samesite": "none" if is_prod else "lax", "secure": is_prod}
+
+
 @router.post("/login", response_model=TokenResponse, summary="Log in — sets JWT httpOnly cookie")
 def login(body: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == body.username).first()
@@ -32,9 +39,8 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
     response.set_cookie(
         key="access_token",
         value=token,
-        httponly=True,
-        samesite="lax",
-        max_age=28800,   # 8 hours
+        max_age=settings.jwt_expiry_hours * 3600,
+        **_cookie_attrs(),
     )
     return TokenResponse(
         username=user.username,
@@ -47,7 +53,7 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
 
 @router.post("/logout", summary="Log out — clears the auth cookie")
 def logout(response: Response):
-    response.delete_cookie("access_token")
+    response.delete_cookie("access_token", **_cookie_attrs())
     return {"message": "Logged out"}
 
 
@@ -155,7 +161,7 @@ def change_password(
     db.commit()
 
     # Invalidate the current session so the next login uses the new password.
-    response.delete_cookie("access_token")
+    response.delete_cookie("access_token", **_cookie_attrs())
     return {"message": "Password changed. Please log in again."}
 
 

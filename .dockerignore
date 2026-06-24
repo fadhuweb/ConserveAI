@@ -1,0 +1,28 @@
+# Keep the backend image lean — only src/ and results/production/ are needed.
+.git
+.gitignore
+venv/
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Frontend (deployed separately on Vercel)
+frontend/
+
+# Notebooks, training artefacts, datasets — not needed at runtime
+notebooks/
+results/models/
+models_trained/
+data/
+backup/
+docs/
+tests/
+
+# Secrets & local env (provided as Fly secrets instead)
+.env
+.env.*
+secrets/
+
+# Dev / training-only requirements
+requirements.txt

@@ -149,8 +149,12 @@ def _init_gee() -> bool:
         project  = os.getenv("GEE_PROJECT", "")
         sa_email = os.getenv("GEE_SERVICE_ACCOUNT", "")
         key_file = os.getenv("GEE_KEY_FILE", "")
+        key_data = os.getenv("GEE_KEY_DATA", "")   # raw JSON content (for headless/Fly secrets)
 
-        if sa_email and key_file and Path(key_file).exists():
+        if sa_email and key_data:
+            credentials = ee.ServiceAccountCredentials(sa_email, key_data=key_data)
+            ee.Initialize(credentials, project=project)
+        elif sa_email and key_file and Path(key_file).exists():
             credentials = ee.ServiceAccountCredentials(sa_email, key_file)
             ee.Initialize(credentials, project=project)
         else:
