@@ -27,4 +27,4 @@ def run_daily_forecast(x_job_token: str | None = Header(default=None)):
 
     from src.backend.jobs.daily_forecast import run_and_save
     results = run_and_save()
-    return {"status": "ok", "parks_updated": len(results)}
+    return {"status": "ok", "parks_processed": len(results or {})}
