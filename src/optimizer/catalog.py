@@ -58,7 +58,7 @@ CATALOG: list[Intervention] = [
     ),
     Intervention(
         id="water_truck",
-        name="Water Trucking",
+        name="Waterhole Maintenance",
         type="water",
         cost=800,
         max_units=8,

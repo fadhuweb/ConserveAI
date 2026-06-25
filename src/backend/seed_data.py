@@ -60,7 +60,7 @@ CATALOG_ROWS = [
         "citation": "Rother & Veblen (2016), Int. J. Wildland Fire 25:619-631",
     },
     {
-        "id": "water_truck", "name": "Water Trucking", "type": "water",
+        "id": "water_truck", "name": "Waterhole Maintenance", "type": "water",
         "cost_usd": 800, "max_units": 8,
         "effectiveness_fire": 0.01, "effectiveness_drought": 0.18, "effectiveness_veg": 0.08,
         "citation": "Hulme (2017), Regional Environmental Change 17:1219-1232",
