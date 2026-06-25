@@ -7,16 +7,16 @@ const TYPE_LABEL = {
   patrol: "Patrol", infrastructure: "Infrastructure", water: "Water",
   vegetation: "Vegetation", community: "Community", survey: "Survey",
 };
-// Plain-language explanation of each intervention and why it matters.
+// Plain-language explanation of each intervention, grounded in Nigerian park threats.
 const DESCRIPTIONS = {
-  fire_patrol:   "Ground patrol teams that spot and respond to fire outbreaks early, before they spread.",
-  ranger:        "Rangers deployed across a zone to deter poaching and give first response to fire and other threats.",
-  fire_break:    "Cleared strips of land that stop wildfire from spreading between areas of vegetation.",
-  water_truck:   "Trucked-in water to top up waterholes and relieve drought stress in dry zones.",
-  borehole:      "Repairing or drilling boreholes and wells for a reliable dry-season water supply.",
-  revegetation:  "Replanting degraded plots to restore vegetation cover and slow land degradation.",
-  community:     "Engagement and awareness work with neighbouring communities to reduce human-caused fire and poaching.",
-  aerial_survey: "Aerial or drone surveys that monitor fire, vegetation and wildlife across hard-to-reach terrain.",
+  fire_patrol:   "Patrol teams that detect and suppress dry-season bush fires early, before they spread across the savanna.",
+  ranger:        "Rangers deployed to deter poaching and grazing encroachment and to respond first to fire and other threats in a zone.",
+  fire_break:    "Cleared strips that stop dry-season bush fires from spreading between blocks of vegetation.",
+  water_truck:   "Maintaining and refilling artificial waterholes so wildlife has water through the dry season.",
+  borehole:      "Repairing or drilling boreholes and wells to keep water points running in drought-prone parks.",
+  revegetation:  "Replanting degraded or encroached land to restore vegetation cover and slow habitat loss.",
+  community:     "Working with neighbouring communities to reduce human-driven threats such as bush burning, poaching and grazing.",
+  aerial_survey: "Aerial or drone surveys that monitor fire, vegetation and wildlife across terrain that is hard to patrol on foot.",
 };
 const THREATS = [
   ["effectiveness_fire", "Fire", "#E64A19"],
