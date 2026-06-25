@@ -399,7 +399,7 @@ def run_and_save(target_date: Optional[date] = None):
             artefact = pickle.load(f)
     except Exception:
         logger.exception("Failed to load production model")
-        return
+        return {}
 
     _init_gee()   # initialise once — threads share the session
 
@@ -434,6 +434,8 @@ def run_and_save(target_date: Optional[date] = None):
         logger.exception("DB commit failed")
     finally:
         db.close()
+
+    return results
 
 
 def fill_range(start_date: date, end_date: date):
