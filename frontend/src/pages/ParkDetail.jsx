@@ -17,11 +17,12 @@ import { ngnToUsd, fmtNGN } from "../lib/currency";
 
 const THREATS = [["Fire", "fire_prob", "fire"], ["Drought", "drought_prob", "drought"], ["Vegetation", "veg_prob", "vegetation"]];
 
-// Threat → the intervention focus it implies, for the alert and next-action copy.
+// The three threats and their forecast fields (for the gauges, status alert and
+// dominant-threat read). Interventions are decided by the recommender, not hardcoded here.
 const GAUGES = [
-  ["Fire", "fire_prob", "firebreaks and ranger patrols"],
-  ["Drought", "drought_prob", "water-point and borehole support"],
-  ["Vegetation", "veg_prob", "revegetation and grazing control"],
+  ["Fire", "fire_prob"],
+  ["Drought", "drought_prob"],
+  ["Vegetation", "veg_prob"],
 ];
 
 // Operational alert — shown ONLY when something needs attention: the dominant
@@ -30,7 +31,7 @@ const GAUGES = [
 function StatusBanner({ latest, weekAgo }) {
   if (!latest) return null;
   const ranked = [...GAUGES].sort((a, b) => latest[b[1]] - latest[a[1]]);
-  const [name, pk, action] = ranked[0];
+  const [name, pk] = ranked[0];
   const v = latest[pk];
   const dp = weekAgo ? Math.round((v - weekAgo[pk]) * 100) : 0;
 
@@ -38,13 +39,14 @@ function StatusBanner({ latest, weekAgo }) {
   const climbing = dp >= 5 && v >= 0.4;
   if (!high && !climbing) return null;
 
+  // State the situation only — the recommender below decides the interventions.
   const cls = high ? "high" : "medium";
   let message;
   if (high) {
-    const tail = dp <= -2 ? "though easing — keep up" : dp >= 2 ? "and still rising — prioritise" : "— prioritise";
-    message = <><b>{name} risk is high</b> at {pct(v)} {tail} {action} below.</>;
+    const trend = dp <= -2 ? ", though easing this week" : dp >= 2 ? " and still rising" : "";
+    message = <><b>{name} is the top threat</b> at {pct(v)} (high{trend}). Run the planner below to allocate this period's interventions.</>;
   } else {
-    message = <><b>{name} risk has climbed {dp} pts this week</b> to {pct(v)}. Consider {action} below before it escalates.</>;
+    message = <><b>{name} risk has climbed {dp} pts this week</b> to {pct(v)}. Plan ahead with the recommender below before it escalates.</>;
   }
   return (
     <div className={`status-banner ${cls}`}>
