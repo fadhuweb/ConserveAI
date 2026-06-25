@@ -765,6 +765,7 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
 .catalog-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(15, 61, 46, .08); }
 .cat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .cat-name { font-weight: 700; font-size: 15.5px; line-height: 1.3; color: var(--ink); min-height: 2.6em; }
+.cat-desc { font-size: 13px; line-height: 1.45; color: var(--muted); margin: 0 0 12px; min-height: 2.9em; }
 .cat-meta { font-size: 13.5px; margin-bottom: 14px; }
 .cat-eff { display: flex; flex-direction: column; gap: 8px; }
 .eff-row { display: flex; align-items: center; gap: 10px; }

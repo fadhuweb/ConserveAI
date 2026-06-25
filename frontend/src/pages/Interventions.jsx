@@ -7,6 +7,17 @@ const TYPE_LABEL = {
   patrol: "Patrol", infrastructure: "Infrastructure", water: "Water",
   vegetation: "Vegetation", community: "Community", survey: "Survey",
 };
+// Plain-language explanation of each intervention and why it matters.
+const DESCRIPTIONS = {
+  fire_patrol:   "Ground patrol teams that spot and respond to fire outbreaks early, before they spread.",
+  ranger:        "Rangers deployed across a zone to deter poaching and give first response to fire and other threats.",
+  fire_break:    "Cleared strips of land that stop wildfire from spreading between areas of vegetation.",
+  water_truck:   "Trucked-in water to top up waterholes and relieve drought stress in dry zones.",
+  borehole:      "Repairing or drilling boreholes and wells for a reliable dry-season water supply.",
+  revegetation:  "Replanting degraded plots to restore vegetation cover and slow land degradation.",
+  community:     "Engagement and awareness work with neighbouring communities to reduce human-caused fire and poaching.",
+  aerial_survey: "Aerial or drone surveys that monitor fire, vegetation and wildlife across hard-to-reach terrain.",
+};
 const THREATS = [
   ["effectiveness_fire", "Fire", "#E64A19"],
   ["effectiveness_drought", "Drought", "#1976D2"],
@@ -30,8 +41,8 @@ export default function Interventions() {
     <AppShell subtitle="Interventions">
       <h2>Intervention catalog</h2>
       <p className="muted" style={{ marginTop: 4, marginBottom: 20, fontSize: 15 }}>
-        The conservation actions the recommender can deploy. Each is costed per unit for a 30-day
-        period; the bars show the expected risk reduction per unit for each threat.
+        The conservation actions the recommender can deploy. The bars show the expected risk
+        reduction per unit for each threat over a 30-day plan.
       </p>
 
       {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />}
@@ -46,8 +57,9 @@ export default function Interventions() {
                 <span className="cat-name">{iv.name}</span>
                 <Tag>{TYPE_LABEL[iv.type] || iv.type}</Tag>
               </div>
+              {DESCRIPTIONS[iv.id] && <p className="cat-desc">{DESCRIPTIONS[iv.id]}</p>}
               <div className="cat-meta">
-                <span className="muted">Up to {iv.max_units} units per 30-day period</span>
+                <span className="muted">Up to {iv.max_units} units per plan</span>
               </div>
               <div className="cat-eff">
                 {THREATS.map(([k, label, color]) => {
@@ -63,7 +75,6 @@ export default function Interventions() {
                   );
                 })}
               </div>
-              {iv.citation && <div className="cat-cite">{iv.citation}</div>}
             </div>
           ))}
         </div>
