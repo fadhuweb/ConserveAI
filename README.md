@@ -19,6 +19,16 @@ Log in with `admin` / `admin2025` (national view) or `manager_yankari` / `conser
 
 ---
 
+## Key documents
+
+| Document | What it covers |
+|----------|----------------|
+| **[Testing results](docs/TESTING.md)** | Testing strategies (unit, model evaluation, API, end-to-end), results with screenshots, different data values, and local-vs-cloud performance |
+| **[Analysis](docs/ANALYSIS.md)** | Results against the proposal objectives, discussion, and recommendations / future work |
+| **[Deployment guide](docs/deployment_guide.md)** | Step-by-step deployment on Neon, Fly.io, Vercel, and the GitHub Actions cron |
+
+---
+
 ## What you can demo (the dashboard)
 
 | Capability | Where in the app |
@@ -155,6 +165,12 @@ python -m pytest tests/ -v
 ```
 
 17 unit tests pass, covering the ILP optimiser (budget, capacity, type toggles, urgency floors) and authentication (bcrypt hashing, password policy, JWT access / reset tokens). The full testing record — unit tests, model evaluation on a held-out 2024–2025 test set (Fire F2 0.94, Drought 0.89, Vegetation 0.75), API / integration tests, different-data-value runs, and performance across local and cloud — is in **[`docs/TESTING.md`](docs/TESTING.md)**.
+
+---
+
+## Analysis
+
+An analysis of the results against the proposal objectives — what was achieved, what fell short (label leakage, vegetation accuracy, threat scope), the discussion, and recommendations / future work — is in **[`docs/ANALYSIS.md`](docs/ANALYSIS.md)**.
 
 ---
 
