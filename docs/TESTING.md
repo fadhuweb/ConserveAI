@@ -9,9 +9,7 @@ Live system under test:
 - Backend: https://conserveai-api.fly.dev
 - Database: Neon Postgres (Frankfurt)
 
-> Screenshots are in `docs/screenshots/`. Items marked **[capture]** are screenshots
-> to take yourself (one command or click each). The checklist at the end of this
-> document lists every screenshot and how to take it.
+> Screenshots are in `docs/screenshots/` and render inline in the relevant sections below.
 
 ---
 
@@ -45,7 +43,7 @@ python -m pytest tests/ -v
 Result: `17 passed`.
 
 ![All 17 unit tests passing](screenshots/pytest_pass.png)
-**[capture]** Run `python -m pytest tests/ -v` and screenshot the terminal showing `17 passed`.
+*The full suite run with `python -m pytest tests/ -v`: 17 passed.*
 
 ### 1.2 Model evaluation on held-out data
 The model was trained on 2020 to 2023 and evaluated on a temporally separate
@@ -61,7 +59,7 @@ F2 is the primary metric because missing a real threat is worse than a false ala
 Fire and drought are strong. Vegetation is moderate, which the analysis discusses.
 
 ![Model evaluation metrics on the held-out test set](screenshots/model_metrics.png)
-**[capture]** Open `notebooks/00_model_demo.ipynb` (or the evaluation output) and screenshot the metrics table.
+*Held-out 2024-2025 test metrics for the production model.*
 
 ### 1.3 Integration and API testing
 Each endpoint was exercised against the live deployment with `curl`. The interactive
@@ -79,7 +77,7 @@ API documentation is also available at `https://conserveai-api.fly.dev/docs`.
 | Scheduled job, valid token | `POST /jobs/run-daily-forecast` | `200`, 6 parks processed |
 
 ![Swagger API documentation on the live backend](screenshots/swagger.png)
-**[capture]** Open https://conserveai-api.fly.dev/docs and screenshot the endpoint list.
+*The live API documentation at conserveai-api.fly.dev/docs.*
 
 ### 1.4 End-to-end and manual testing
 The full user journey was tested in the browser on the deployed site: log in,
@@ -88,8 +86,10 @@ drivers, set a budget, and generate a recommendation. The recommendation appears
 on the zone map and in the plan. This path is shown in the demo video.
 
 ![National overview on the live site](screenshots/app_national_overview.png)
+*The national overview on the live site.*
+
 ![Park console with a generated recommendation and zone deployment](screenshots/app_recommendation.png)
-**[capture]** On https://conserve-ai.vercel.app, screenshot (1) the national overview, and (2) a park after running a recommendation.
+*A park after running a recommendation, with the zone deployment.*
 
 ### 1.5 Scheduled-job testing
 The daily forecast job was triggered through the GitHub Actions cron and through a
@@ -112,7 +112,7 @@ never exceeds it.
 | $50,000 | 44 | $50,000 | 8 ms |
 
 ![The recommender producing different plans at different budgets](screenshots/app_budgets.png)
-**[capture]** In the app, run the recommender at two different budgets and screenshot each plan side by side (this shows the system responding to different input data).
+*The recommender producing a different plan at a different budget.*
 
 ### 2.2 Edge cases (unit tests)
 - Budget of $0 returns an empty plan with zero cost.
@@ -184,20 +184,9 @@ single column on small screens.
 
 ## Screenshots
 
-Three are already generated and committed: `pytest_pass.png` (section 1.1),
-`model_metrics.png` (section 1.2), and `performance.png` (the local-vs-cloud chart in
-section 3.1).
-
-Four more are quick captures from the live site. Save each with the exact filename in
-`docs/screenshots/`:
-
-| File | How to capture |
-|---|---|
-| `swagger.png` | Open https://conserveai-api.fly.dev/docs ; screenshot the endpoint list. |
-| `app_national_overview.png` | On the live site, screenshot the national overview map and table. |
-| `app_recommendation.png` | Open a park, run a recommendation, screenshot the plan and zone map. |
-| `app_budgets.png` | Run the recommender at two budgets; screenshot both plans. |
-
-The folder already holds earlier screenshots (`login.png`, `forecast.png`,
-`national-overview.png`, `recommend.png`, `swagger_overview.png`). Reuse them only if
-they match the current interface; otherwise recapture from the live site.
+All evidence referenced above is in `docs/screenshots/` and renders inline in the
+sections: the pytest run (`pytest_pass.png`), the held-out model metrics
+(`model_metrics.png`), the live Swagger API (`swagger.png`), the national overview
+(`app_national_overview.png`), a park recommendation (`app_recommendation.png`), the
+recommender at a different budget (`app_budgets.png`), and the local-vs-cloud
+performance chart (`performance.png`).
