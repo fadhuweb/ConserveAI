@@ -4,7 +4,18 @@
 
 Repository: https://github.com/fadhuweb/ConserveAI
 
-ConserveAI produces daily 30-day risk forecasts for **fire, drought, and vegetation degradation** across six national parks, then recommends how a park manager should spend a limited conservation budget to reduce that risk — allocated down to four zones per park. A machine-learning model serves the forecasts; an integer-linear-programming (ILP) optimiser produces the recommendations. The product is a **React web dashboard** backed by a **FastAPI** service (also browsable as a Swagger API).
+ConserveAI produces daily 30-day risk forecasts for **fire, drought, and vegetation degradation** across six national parks, then recommends how a park manager should spend a limited conservation budget to reduce that risk — allocated down to four zones per park. A machine-learning model produces the forecasts; an integer-linear-programming (ILP) optimiser produces the recommendations. The product is a **React web dashboard** backed by a **FastAPI** service (also browsable as a Swagger API).
+
+---
+
+## Live demo
+
+The system is deployed and live:
+
+- **App:** https://conserve-ai.vercel.app
+- **API:** https://conserveai-api.fly.dev (Swagger at [`/docs`](https://conserveai-api.fly.dev/docs), health at [`/health`](https://conserveai-api.fly.dev/health))
+
+Log in with `admin` / `admin2025` (national view) or `manager_yankari` / `conserve2025` (single park). Full account list under [Demo accounts](#demo-accounts).
 
 ---
 
@@ -135,18 +146,30 @@ npm run dev
 
 ---
 
-## Deployment plan
+## Testing
 
-The system is built to run on free-tier infrastructure:
+Run the automated test suite from the project root:
 
-| Layer | Platform |
-|-------|----------|
-| Database | **Neon** (serverless PostgreSQL — swap via `DATABASE_URL`) |
-| Backend | **Fly.io** (always-on Docker container running FastAPI) |
-| Scheduler | **GitHub Actions cron** → protected daily-forecast endpoint (replaces in-process APScheduler so a sleeping container can't miss the 3 AM job) |
-| Frontend | **Vercel** (React dashboard) |
+```powershell
+python -m pytest tests/ -v
+```
 
-At deploy time, an `ENVIRONMENT=production` flag flips the auth cookie to `secure`/`samesite=none` and applies production CORS origins; `FRONTEND_URL` points the password-reset links at the deployed dashboard. Provisioning is a one-time `seed_data` + `backfill` run against the Neon database.
+17 unit tests pass, covering the ILP optimiser (budget, capacity, type toggles, urgency floors) and authentication (bcrypt hashing, password policy, JWT access / reset tokens). The full testing record — unit tests, model evaluation on a held-out 2024–2025 test set (Fire F2 0.94, Drought 0.89, Vegetation 0.75), API / integration tests, different-data-value runs, and performance across local and cloud — is in **[`docs/TESTING.md`](docs/TESTING.md)**.
+
+---
+
+## Deployment (live)
+
+The system is deployed and running on free-tier infrastructure:
+
+| Layer | Platform | URL |
+|-------|----------|-----|
+| Frontend | **Vercel** | https://conserve-ai.vercel.app |
+| Backend | **Fly.io** (Docker, FastAPI) | https://conserveai-api.fly.dev |
+| Database | **Neon** (serverless PostgreSQL, Frankfurt) | via `DATABASE_URL` |
+| Scheduler | **GitHub Actions cron** (daily 04:00 UTC) → protected `POST /jobs/run-daily-forecast` on Fly | — |
+
+Production behaviour is gated on `ENVIRONMENT=production`: the auth cookie becomes `secure` / `samesite=none` for the cross-domain Vercel↔Fly hop, production CORS origins apply, and the in-process scheduler is replaced by the external cron (a sleeping container can't miss the job). The daily cron keeps the database current automatically. Step-by-step instructions are in **[`docs/deployment_guide.md`](docs/deployment_guide.md)**, and deployment was verified end-to-end against the live URLs (see [`docs/TESTING.md`](docs/TESTING.md)).
 
 ---
 
@@ -165,7 +188,11 @@ src/
   models/         ML training, evaluation, production model packaging
   optimizer/      ILP recommender, sensitivity analysis, intervention catalog
   data_pipeline/  data ingestion & feature engineering
+tests/            pytest suite — optimiser + auth unit tests
 notebooks/        00_model_demo + supporting analysis notebooks
-docs/             design spec, mockups, screenshots, demo script
+docs/             TESTING.md, deployment_guide.md, design spec, demo script
 results/          trained models, metrics, production model
+Dockerfile, fly.toml          backend deployment (Fly.io)
+frontend/vercel.json          frontend deployment (Vercel SPA routing)
+.github/workflows/            daily-forecast cron (GitHub Actions)
 ```
