@@ -134,12 +134,23 @@ The same operations were measured on two environments.
 | Local (development) | Windows, Python 3.12 |
 | Cloud (production) | Fly.io Linux container, shared-cpu-1x, 512 MB RAM |
 
-### 3.1 API response times (cloud, warm)
-| Operation | Time |
-|---|---|
-| `POST /auth/login` | 1.01 s |
-| `GET /national-overview` | 0.73 s |
-| `GET /forecasts/yankari?days=30` | 0.73 s |
+### 3.1 Same endpoints, local machine vs cloud container
+Each endpoint was called five times on each environment; the table shows the median.
+
+| Operation | Local (Windows) | Cloud (Fly.io) |
+|---|---|---|
+| `GET /health` | 2,674 ms | 502 ms |
+| `POST /auth/login` | 2,835 ms | 805 ms |
+| `GET /national-overview` | 1,510 ms | 288 ms |
+| `GET /forecasts/yankari?days=30` | 671 ms | 272 ms |
+
+![Local vs cloud API performance](screenshots/performance.png)
+
+The cloud container is three to five times faster on every call. Both hit the same
+Neon database in Frankfurt, but the Fly.io container runs in Frankfurt next to it,
+while the local machine in Nigeria pays a trans-continental round trip to the
+database on every query. This is a concrete performance difference between two
+hardware and network environments running identical code.
 
 ### 3.2 Cold start
 The cloud machine scales to zero when idle. The first request after idle wakes it
@@ -167,23 +178,25 @@ single column on small screens.
 | Integration / API | All endpoints behave as specified, including auth and the job token |
 | End-to-end (browser) | Full journey works on the deployed site |
 | Different data values | Recommender scales with budget and stays within it; per-park forecasts differ |
-| Performance | Sub-second warm responses; millisecond ILP solves; 7 s cold start |
+| Performance | Cloud 3-5x faster than local (database co-location); sub-second warm responses; millisecond ILP solves; 7 s cold start |
 
 ---
 
-## Screenshots to capture
+## Screenshots
 
-Save each with the exact filename in `docs/screenshots/` so it appears in the sections
-above. Each is one command or one click.
+Three are already generated and committed: `pytest_pass.png` (section 1.1),
+`model_metrics.png` (section 1.2), and `performance.png` (the local-vs-cloud chart in
+section 3.1).
 
-| # | File | How to capture |
-|---|---|---|
-| 1 | `pytest_pass.png` | Run `python -m pytest tests/ -v`; screenshot the terminal showing `17 passed`. |
-| 2 | `model_metrics.png` | Open `notebooks/00_model_demo.ipynb`; screenshot the metrics table. |
-| 3 | `swagger.png` | Open https://conserveai-api.fly.dev/docs ; screenshot the endpoint list. |
-| 4 | `app_national_overview.png` | On the live site, screenshot the national overview map and table. |
-| 5 | `app_recommendation.png` | Open a park, run a recommendation, screenshot the plan and zone map. |
-| 6 | `app_budgets.png` | Run the recommender at two budgets; screenshot both plans. |
+Four more are quick captures from the live site. Save each with the exact filename in
+`docs/screenshots/`:
+
+| File | How to capture |
+|---|---|
+| `swagger.png` | Open https://conserveai-api.fly.dev/docs ; screenshot the endpoint list. |
+| `app_national_overview.png` | On the live site, screenshot the national overview map and table. |
+| `app_recommendation.png` | Open a park, run a recommendation, screenshot the plan and zone map. |
+| `app_budgets.png` | Run the recommender at two budgets; screenshot both plans. |
 
 The folder already holds earlier screenshots (`login.png`, `forecast.png`,
 `national-overview.png`, `recommend.png`, `swagger_overview.png`). Reuse them only if
