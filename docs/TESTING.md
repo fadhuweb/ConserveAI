@@ -105,11 +105,6 @@ to Neon. The GitHub Actions run completed green.
 Same park and threats, different budgets. The plan scales up with the budget and
 never exceeds it.
 
-| Budget | Total units | Total cost | Solve time |
-|---|---|---|---|
-| $5,000 | 6 | $4,800 | 51 ms |
-| $10,000 | 14 | $9,900 | 11 ms |
-| $50,000 | 44 | $50,000 | 8 ms |
 
 ![The recommender producing different plans at different budgets](screenshots/app_budgets.png)
 *The recommender producing a different plan at a different budget.*
