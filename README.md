@@ -150,7 +150,6 @@ npm run dev
 ## Designs
 
 - **Live dashboard** — the React app above is the primary interface (login, national overview, park detail, manager provisioning).
-- **Interface mockup:** [`docs/mockups/conserveai_mockup.html`](docs/mockups/conserveai_mockup.html) — the original design reference.
 - **Design spec & wireframes:** [`docs/DESIGN.md`](docs/DESIGN.md)
 - **Screenshots:** [`docs/screenshots/`](docs/screenshots/)
 
