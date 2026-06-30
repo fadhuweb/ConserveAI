@@ -46,8 +46,10 @@ vegetation risk across parks, but the signal moves little within a park over a s
 window.
 
 The threat set follows what free satellite and climate data can measure. It does not
-cover the threats that dominate Nigerian park management, such as poaching, grazing
-encroachment, and insecurity in the north-east [citation needed]. The intervention
+cover the threats the proposal itself identifies as central to Nigerian parks, such
+as poaching, grazing encroachment, and insecurity in the north-east, because none of
+these are observable from the open climate and satellite sources the model relies on.
+The intervention
 cost and effectiveness values are literature-informed estimates rather than figures
 measured in these parks. The system does not yet log actual deployments, so the
 per-plan capacity cap is not tracked across a real 30-day period.
