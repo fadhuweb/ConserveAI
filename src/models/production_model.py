@@ -1,7 +1,7 @@
 """Package the production model for deployment.
 
-Selects the best-performing model (RF supervised, highest mean F2 across
-all three threats) and writes a versioned production artefact to
+Selects the best-performing model (self-training RF, `rf_self`, highest mean
+F2 across all three threats) and writes a versioned production artefact to
 results/production/.
 
 Output files
@@ -22,8 +22,8 @@ from model_utils import MODELS_DIR, LABEL_COLS
 
 PRODUCTION_DIR = Path(__file__).resolve().parents[2] / "results" / "production"
 
-# RF supervised is chosen as the production model:
-#  - Mean F2 0.856 across fire/drought/vegetation
+# rf_self (self-training Random Forest) is chosen as the production model:
+#  - Mean F2 0.858 across fire/drought/vegetation
 #  - Beats persistence baseline on all three threats
 #  - Fastest inference (no sequence dependency)
 #  - Robust to missing NDVI features via imputation

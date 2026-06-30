@@ -201,7 +201,9 @@ def recommend(
     solve_ms = (time.perf_counter() - t0) * 1000
     status   = pulp.LpStatus[prob.status]
 
-    allocation = {inv.id: int(pulp.value(x[inv.id]) or 0) for inv in catalog}
+    # round() before int(): CBC can return an integer variable as 2.9999999,
+    # which int() would truncate to 2 and under-count units.
+    allocation = {inv.id: int(round(pulp.value(x[inv.id]) or 0)) for inv in catalog}
     total_cost = sum(
         CATALOG_BY_ID.get(iid, next(i for i in catalog if i.id == iid)).cost * units
         for iid, units in allocation.items()

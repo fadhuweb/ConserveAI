@@ -17,6 +17,11 @@ from src.backend.services.email import send_temporary_password, send_reset_link
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# A throwaway hash so login can always run one bcrypt verify, even when the
+# username doesn't exist — equalises response time so it can't be used to
+# probe which usernames are registered.
+_DUMMY_HASH = hash_password("login-timing-equaliser")
+
 
 def _cookie_attrs() -> dict:
     """Auth-cookie security attributes by environment. Cross-domain (Vercel ↔ Fly)
@@ -28,7 +33,9 @@ def _cookie_attrs() -> dict:
 @router.post("/login", response_model=TokenResponse, summary="Log in — sets JWT httpOnly cookie")
 def login(body: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == body.username).first()
-    if not user or not verify_password(body.password, user.password_hash):
+    # Verify against a dummy hash when the user is absent so timing is constant.
+    password_ok = verify_password(body.password, user.password_hash if user else _DUMMY_HASH)
+    if not user or not password_ok:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,

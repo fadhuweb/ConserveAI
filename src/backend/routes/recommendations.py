@@ -23,7 +23,7 @@ from src.backend.config import settings
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "optimizer"))
 from ilp_recommender import ILPConstraints, recommend, urgency_constraints
 from sensitivity import run_sensitivity
-from catalog import CATALOG_BY_ID
+from catalog import CATALOG_BY_ID, INTERVENTION_TYPES
 from baselines import even_split, patrol_only
 
 router = APIRouter(tags=["recommendations"])
@@ -90,7 +90,7 @@ def recommend_interventions(
     constraints = ILPConstraints(
         budget=body.budget,
         min_spend_per_threat=floors,
-        type_enabled=body.type_enabled or {t: True for t in ["patrol", "infrastructure", "water", "vegetation", "community", "survey"]},
+        type_enabled=body.type_enabled or {t: True for t in INTERVENTION_TYPES},
         max_units_per_type=body.max_units_per_type or {},
     )
 
