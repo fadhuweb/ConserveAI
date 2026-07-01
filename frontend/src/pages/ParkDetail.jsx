@@ -170,7 +170,10 @@ export default function ParkDetail() {
               <div className="psb-sep" />
               <div className="psb-item">
                 <span className="psb-label">Last updated</span>
-                <span className="psb-value">{latest.date}</span>
+                <span className="psb-value"
+                  title={`Forecast uses data through ${latest.date} (satellite and climate data lag about a day)`}>
+                  {latest.computed_at ? String(latest.computed_at).slice(0, 10) : latest.date}
+                </span>
               </div>
               <div className="psb-sep" />
               <div className="psb-item">
