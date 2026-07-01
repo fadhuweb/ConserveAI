@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Optional
 from pydantic import BaseModel
 
 
@@ -15,10 +16,11 @@ class ForecastOut(BaseModel):
 
 class ParkOverview(BaseModel):
     park:         str
-    latest_date:  date
+    latest_date:  date                    # data date the forecast is anchored to
     fire_prob:    float
     drought_prob: float
     veg_prob:     float
+    computed_at:  Optional[datetime] = None   # when the daily job last refreshed it
 
 
 class Driver(BaseModel):

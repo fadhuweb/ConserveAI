@@ -176,6 +176,7 @@ def national_overview(
                 fire_prob=row.fire_prob,
                 drought_prob=row.drought_prob,
                 veg_prob=row.veg_prob,
+                computed_at=row.computed_at,
             ))
     return overview
 

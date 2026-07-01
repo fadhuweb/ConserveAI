@@ -94,7 +94,13 @@ export default function NationalOverview() {
         .map(([t, v]) => ({ park: r.display_name || r.park, threat: t, v })))
         .sort((a, b) => b.v - a.v)[0]
     : null;
-  const latestUpdate = rows.find((r) => r.latest_date)?.latest_date || "Pending";
+  // "Updated" reflects when the daily job last ran (computed_at), not the data
+  // anchor date (latest_date), which lags ~1 day behind because satellite and
+  // climate sources publish a day late.
+  const latestUpdate =
+    rows.find((r) => r.computed_at)?.computed_at?.slice(0, 10) ||
+    rows.find((r) => r.latest_date)?.latest_date ||
+    "Pending";
 
   // value for the active threat lens ("max" = highest of the three)
   const lensValue = (r) => !r ? 0
@@ -164,11 +170,20 @@ export default function NationalOverview() {
       sorter: (a, b) => a.veg_prob - b.veg_prob,
       render: (p) => <ThreatGauge p={p} />
     },
-    { 
-      title: "Last Updated", 
-      dataIndex: "latest_date", 
+    {
+      title: "Last Updated",
       key: "updated",
-      render: (d) => <span style={{ color: "var(--muted)", fontWeight: 500 }}>{d}</span> 
+      render: (_, r) => {
+        const refreshed = r.computed_at ? String(r.computed_at).slice(0, 10) : (r.latest_date || "Pending");
+        return (
+          <span
+            style={{ color: "var(--muted)", fontWeight: 500 }}
+            title={r.latest_date ? `Forecast uses data through ${r.latest_date} (satellite and climate data lag about a day)` : undefined}
+          >
+            {refreshed}
+          </span>
+        );
+      }
     },
     {
       title: "Action",
