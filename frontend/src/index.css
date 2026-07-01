@@ -1522,3 +1522,17 @@ button.link:hover { color: #1565C0; text-decoration: underline; }
     grid-template-columns: 1fr;
   }
 }
+
+/* Recommender "why this plan" rationale */
+.rec-rationale {
+  background: #f0f7f4;
+  border: 1px solid #d7e8e0;
+  border-left: 3px solid #10b981;
+  border-radius: var(--r-md, 10px);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.rec-rationale-title { font-weight: 600; color: #0f3d2e; margin-bottom: 4px; }
+.rec-rationale-summary { margin: 0 0 6px; color: #334155; font-size: 13.5px; }
+.rec-rationale-points { margin: 0; padding-left: 18px; }
+.rec-rationale-points li { font-size: 13px; color: #475569; margin-bottom: 3px; }

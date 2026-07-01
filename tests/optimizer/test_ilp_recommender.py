@@ -5,6 +5,7 @@ urgency floors) and that it responds correctly to different input data values.
 """
 from ilp_recommender import recommend, ILPConstraints, urgency_constraints
 from catalog import CATALOG_BY_ID, INTERVENTION_TYPES
+from explain import build_rationale
 
 BALANCED  = {"fire": 0.5, "drought": 0.5, "vegetation": 0.5}
 HIGH_FIRE = {"fire": 0.9, "drought": 0.2, "vegetation": 0.2}
@@ -70,3 +71,20 @@ def test_urgency_constraints_stay_feasible():
     floors = urgency_constraints(probs, 10_000)
     res = recommend(probs, ILPConstraints(budget=10_000, min_spend_per_threat=floors))
     assert res.status == "Optimal"
+
+
+def test_rationale_justifies_every_selected_intervention():
+    res = recommend(HIGH_FIRE, ILPConstraints(budget=10_000))
+    expl = build_rationale(HIGH_FIRE, {}, res.allocation, res.total_cost, 10_000)
+    assert "fire" in expl["summary"].lower()
+    for iid, units in res.allocation.items():
+        if units > 0:
+            assert expl["reasons"].get(iid)          # every chosen item is explained
+
+
+def test_rationale_notes_the_urgency_floor():
+    probs = {"fire": 0.9, "drought": 0.9, "vegetation": 0.2}
+    floors = urgency_constraints(probs, 10_000)
+    res = recommend(probs, ILPConstraints(budget=10_000, min_spend_per_threat=floors))
+    expl = build_rationale(probs, floors, res.allocation, res.total_cost, 10_000)
+    assert any("minimum spend" in p for p in expl["points"])

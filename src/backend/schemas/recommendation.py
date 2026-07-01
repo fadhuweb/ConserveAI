@@ -19,6 +19,12 @@ class AllocationItem(BaseModel):
     name:  str
     units: int
     cost:  float
+    reason: Optional[str] = None   # why this intervention was chosen
+
+
+class Rationale(BaseModel):
+    summary: str          # one-line risk profile + strategy
+    points:  List[str]    # urgency floors, budget use, and other decision notes
 
 
 class ThreatReduction(BaseModel):
@@ -63,6 +69,7 @@ class RecommendResponse(BaseModel):
     current_forecast:          PostInterventionForecast   # probabilities WITHOUT intervention
     post_intervention_forecast: PostInterventionForecast  # projected probabilities AFTER intervention
     baseline_comparison:       List[BaselineRow]          # ILP vs even-split vs patrol-only
+    rationale:                 Rationale                  # plain-language "why this plan"
 
 
 class RecommendationSummary(BaseModel):

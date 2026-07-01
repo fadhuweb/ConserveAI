@@ -15,7 +15,7 @@ from src.backend.schemas.recommendation import (
     RecommendRequest, RecommendResponse,
     SensitivityRequest, SensitivityResponse,
     AllocationItem, ThreatReduction, PostInterventionForecast,
-    ZoneAllocationItem, RecommendationSummary, BaselineRow,
+    ZoneAllocationItem, RecommendationSummary, BaselineRow, Rationale,
 )
 from src.backend.config import settings
 
@@ -25,6 +25,7 @@ from ilp_recommender import ILPConstraints, recommend, urgency_constraints
 from sensitivity import run_sensitivity
 from catalog import CATALOG_BY_ID, INTERVENTION_TYPES
 from baselines import even_split, patrol_only
+from explain import build_rationale
 
 router = APIRouter(tags=["recommendations"])
 
@@ -97,6 +98,10 @@ def recommend_interventions(
     result = recommend(probs, constraints)
     rr = result.risk_reduction
 
+    # Plain-language "why this plan": risk profile, urgency floors, budget use,
+    # and a per-intervention justification tied to the risk it addresses.
+    expl = build_rationale(probs, floors, result.allocation, result.total_cost, body.budget)
+
     # Park-level totals by intervention
     allocation_items = [
         AllocationItem(
@@ -104,6 +109,7 @@ def recommend_interventions(
             name=CATALOG_BY_ID[iid].name,
             units=units,
             cost=CATALOG_BY_ID[iid].cost * units,
+            reason=expl["reasons"].get(iid),
         )
         for iid, units in result.allocation.items()
         if units > 0
@@ -187,6 +193,7 @@ def recommend_interventions(
             vegetation=rr["vegetation"]["prob_after"],
         ),
         baseline_comparison=baseline_comparison,
+        rationale=Rationale(summary=expl["summary"], points=expl["points"]),
     )
 
 
