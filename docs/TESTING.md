@@ -50,13 +50,16 @@ The model was trained on 2020 to 2023 and evaluated on a temporally separate
 2024 to 2025 test set (n = 3,812 park-day rows it never saw during training).
 F2 is the primary metric because missing a real threat is worse than a false alarm.
 
-| Threat | F2 | ROC-AUC | Precision | Recall |
-|---|---|---|---|---|
-| Fire | 0.942 | 0.977 | 0.885 | 0.957 |
-| Drought | 0.885 | 0.967 | 0.715 | 0.941 |
-| Vegetation | 0.746 | 0.774 | 0.617 | 0.786 |
+| Threat | F2 | Persistence F2 (baseline) | ROC-AUC | Precision | Recall |
+|---|---|---|---|---|---|
+| Fire | 0.942 | 0.780 | 0.977 | 0.885 | 0.957 |
+| Drought | 0.885 | 0.399 | 0.967 | 0.715 | 0.941 |
+| Vegetation | 0.746 | 0.480 | 0.774 | 0.617 | 0.786 |
 
-Fire and drought are strong. Vegetation is moderate, which the analysis discusses.
+The persistence baseline (the naive forecast that assumes the next 30 days resemble the
+last 30) is the minimum useful-forecast bar. The model clears it on every threat, most
+decisively on drought (0.885 vs 0.399). Fire and drought are strong; vegetation is
+moderate, which the analysis discusses.
 
 ![Model evaluation metrics on the held-out test set](screenshots/model_metrics.png)
 *Held-out 2024-2025 test metrics for the production model.*

@@ -11,7 +11,10 @@ fire, drought, and vegetation degradation. The project met this objective. The
 deployed model produces daily forecasts for all six parks. On a held-out 2024 to
 2025 test set the model scored an F2 of 0.94 for fire, 0.89 for drought, and 0.75
 for vegetation. The fire and drought results are strong. Vegetation is weaker, which
-the discussion examines.
+the discussion examines. Measured against a persistence baseline, the naive forecast
+that the next 30 days resemble the last 30, the model wins on every threat, and by a
+wide margin on drought (F2 0.89 versus 0.40) and fire (0.94 versus 0.78). It is
+therefore learning real structure rather than repeating recent history.
 
 The proposal also called for a comparison of eight model configurations: Random
 Forest, XGBoost, LSTM, and Transformer, each in a supervised and a semi-supervised
@@ -26,6 +29,40 @@ programming, allocating interventions across four zones per park. The project me
 this objective. The optimiser respects the budget and the per-intervention capacity
 in every test, scales its plan up as the budget grows, and allocates units to zones.
 The live system solves a plan in under 60 milliseconds.
+
+The optimiser maximises threat reduction, not budget spend. Its objective is to
+maximise, across all interventions, the number of units times the sum over threats of
+threat probability times per-unit effectiveness, subject to five constraints: a total
+budget ceiling, each intervention's catalog capacity, on and off toggles per
+intervention type, an optional cap on units per type, and urgency floors that force a
+minimum spend on any threat whose probability is high (40 percent of budget at a
+probability of 0.85 or more, 25 percent at 0.70, and 10 percent at 0.50). Because the
+objective rewards risk reduction and the budget is only a ceiling, the plan favours
+threat minimisation over cost utilisation. It buys the interventions with the highest
+probability-weighted effectiveness per dollar first and stops once further units add
+no reduction or hit a capacity cap. This shows in the budget runs: a 5,000 dollar
+budget spends only 4,800, because the most cost-effective units are cheap and quickly
+capped, while a 50,000 dollar budget spends the full amount, because the caps still
+leave useful units to buy. The urgency floors are the one place cost efficiency gives
+way to prioritisation. They push money toward an urgent threat even when a cheaper
+intervention for another threat would score marginally higher, so the plan cannot
+ignore a severe threat simply because addressing it is expensive.
+
+The interventions the plan selects follow the risk profile through the catalog. When
+fire risk dominates, it leans on the Fire Patrol Unit (500 dollars, 0.12 fire
+reduction per unit), which has the best fire reduction per dollar, then adds Fire Break
+Construction (2,000 dollars, 0.22 per unit) for depth. When drought dominates, as at
+Chad Basin where drought risk is near-certain, the urgency floor forces spend onto
+water interventions: the plan buys Waterhole Maintenance (800 dollars, 0.18 drought
+reduction) first for cost efficiency and adds Borehole or Well Repair (3,000 dollars,
+0.28) when the budget allows a deeper cut. Vegetation risk pulls in the Revegetation
+Plot (1,500 dollars, 0.22 vegetation reduction), the only strong single-threat
+vegetation tool. Community Liaison and Ranger Deployment, which spread modest
+effectiveness across all three threats, act as fill, added when a threat is moderate
+rather than severe or when budget remains after the specialised tools reach their caps.
+When several threats are severe at once, the urgency floors scale down proportionally
+so the plan stays within budget while still addressing each threat, producing a
+balanced allocation rather than a single-threat one.
 
 ### Web application and deployment
 The proposal called for a React and FastAPI web application with role-based access
