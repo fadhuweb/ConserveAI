@@ -41,9 +41,17 @@ limitation. The drought and vegetation evaluation therefore measures consistency
 with the data the labels came from in part, rather than against a fully independent
 ground truth.
 
-Vegetation forecasting reached only moderate accuracy. The model separates
-vegetation risk across parks, but the signal moves little within a park over a short
-window.
+Vegetation forecasting is the weakest part of the system, and a live observation
+sharpened why. Vegetation risk is driven by NDVI, an optical satellite index, and two
+problems compound. First, the model was trained on Sentinel-2 NDVI, but the live
+pipeline reads NDVI from MODIS, a different sensor, so inference sees a source the
+model did not learn on. Second, optical NDVI is blocked by cloud, and during the
+rainy season the daily source is unavailable for most parks, so the vegetation input
+falls back to an imputed value. When that happens the vegetation forecast collapses to
+a near-constant output: on 30 June 2026, five of the six parks returned an identical
+vegetation probability of 0.53, and only the arid Sahel park, Chad Basin, which keeps
+clear-sky NDVI, differed. The vegetation figures should therefore be read with low
+confidence during cloudy periods.
 
 The threat set follows what free satellite and climate data can measure. It does not
 cover the threats the proposal itself identifies as central to Nigerian parks, such
@@ -81,6 +89,14 @@ apply local knowledge, especially for the threats the model does not cover.
 
 Future work follows from the limitations.
 
+- Move vegetation onto a cloud-robust NDVI source and align training with serving.
+  Replace the daily optical NDVI with a cloud-composited product (the 16-day MODIS
+  MOD13Q1, which keeps the best clear pixel per window) as the primary signal, and add
+  Sentinel-1 radar, which sees through cloud, as a backup for days optical fails.
+  Rebuild the training data on the same source the live system serves so the model no
+  longer faces a sensor mismatch, then retrain and re-validate. Impute any remaining
+  gaps with each park's seasonal NDVI baseline rather than a global default, and mark
+  the vegetation forecast low-confidence when coverage is poor.
 - Replace the climate-derived drought and vegetation labels with independent ground
   truth to remove the label leakage.
 - Add deployment logging so the system tracks actual unit use against the 30-day
