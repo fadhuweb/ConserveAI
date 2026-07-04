@@ -4,7 +4,7 @@ Flow (runs at 03:00 Lagos time via APScheduler):
     1. For each park:
        a. Fetch yesterday's climate from Open-Meteo (free, no auth)
        b. Fetch last 7 days fire counts from FIRMS REST API
-       c. Fetch MODIS MOD09GA daily NDVI via GEE (500m, 1-2 day lag)
+       c. Fetch MODIS MOD13Q1 NDVI via GEE (250m, 16-day cloud composite)
           → falls back to last known DB value if GEE unavailable or cloudy
        d. Append new row to daily_features table
        e. Load last 90 days → compute rolling features
@@ -166,11 +166,14 @@ def _init_gee() -> bool:
 
 
 def _fetch_modis_ndvi(park: str, target_date: date) -> Optional[float]:
-    """Fetch mean NDVI from MODIS MOD09GA (500m daily) via GEE.
+    """Fetch the most recent MODIS MOD13Q1 (16-day composite, 250m) NDVI as of
+    target_date, via GEE.
 
-    Uses a 3-day window around target_date to handle cloud cover and the
-    1-2 day data processing lag.  Returns None if GEE is unavailable or
-    all pixels are cloudy — caller falls back to last DB value.
+    MOD13Q1 is the same source the model was trained on, and its cloud-composited
+    16-day pixel is far more robust to rainy-season cloud than daily reflectance.
+    Composites arrive every 16 days with a processing lag, so we look back ~32 days
+    and take the latest good composite. Returns None if GEE is unavailable or no
+    good composite exists — caller falls back to the last DB value.
     """
     try:
         import ee
@@ -178,45 +181,39 @@ def _fetch_modis_ndvi(park: str, target_date: date) -> Optional[float]:
         bbox = [float(v) for v in cfg["bbox"].split(",")]  # west, south, east, north
         geometry = ee.Geometry.Rectangle(bbox)
 
-        # 3-day window: target_date-1 to target_date+2
-        start = (target_date - timedelta(days=1)).isoformat()
+        # Look back ~90 days and take the newest composite: MOD13Q1 can lag by a
+        # month or more, and NDVI moves slowly enough that a slightly older
+        # composite is far better than none.
+        start = (target_date - timedelta(days=90)).isoformat()
         end   = (target_date + timedelta(days=2)).isoformat()
 
-        collection = (
-            ee.ImageCollection("MODIS/061/MOD09GA")
+        image = ee.Image(
+            ee.ImageCollection("MODIS/061/MOD13Q1")
             .filterBounds(geometry)
             .filterDate(start, end)
+            .sort("system:time_start", False)   # most recent composite first
+            .first()
         )
+        # NDVI is Int16 scaled by 1e-4; keep good/marginal pixels (SummaryQA <= 1).
+        ndvi = image.select("NDVI").multiply(0.0001).updateMask(image.select("SummaryQA").lte(1))
 
-        def add_ndvi(image):
-            nir  = image.select("sur_refl_b02")
-            red  = image.select("sur_refl_b01")
-            ndvi = nir.subtract(red).divide(nir.add(red)).rename("ndvi")
-            # Mask cloudy pixels using state_1km QA band (bits 0-1 == 00 = clear)
-            qa   = image.select("state_1km")
-            clear = qa.bitwiseAnd(3).eq(0)
-            return ndvi.updateMask(clear)
-
-        ndvi_col = collection.map(add_ndvi)
-        composite = ndvi_col.mean()
-
-        result = composite.reduceRegion(
+        result = ndvi.reduceRegion(
             reducer=ee.Reducer.mean(),
             geometry=geometry,
-            scale=500,
+            scale=250,
             maxPixels=1e9,
         ).getInfo()
 
-        val = result.get("ndvi")
+        val = result.get("NDVI")
         if val is None:
-            logger.debug("MODIS NDVI returned null for %s (cloudy window) — using DB fallback", park)
+            logger.debug("MOD13Q1 NDVI null for %s (no recent good composite) — using DB fallback", park)
             return None
 
-        logger.debug("MODIS NDVI  park=%-18s  ndvi=%.4f", park, val)
+        logger.debug("MOD13Q1 NDVI  park=%-18s  ndvi=%.4f", park, val)
         return round(float(val), 4)
 
     except Exception:
-        logger.warning("MODIS NDVI fetch failed for %s — using DB fallback", park)
+        logger.warning("MOD13Q1 NDVI fetch failed for %s — using DB fallback", park)
         return None
 
 
