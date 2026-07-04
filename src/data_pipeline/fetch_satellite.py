@@ -1,6 +1,17 @@
+"""Fetch cloud-composited MODIS NDVI (MOD13Q1, 16-day, 250 m) via Google Earth Engine.
 
+This replaces the earlier Sentinel-2 fetch. MOD13Q1 is a 16-day maximum-value composite
+that already selects the best clear pixel per window, so it is far more robust to the
+rainy-season cloud cover that left the optical Sentinel-2 series full of gaps. The live
+serving pipeline reads MODIS too, so training and inference now share one source instead
+of the previous Sentinel-2-vs-MODIS mismatch.
 
-"""Fetch Sentinel-2 NDVI via Google Earth Engine for a given park."""
+The output column keeps the name `ndvi_s2` for backward compatibility with the rest of
+the pipeline (feature engineering, joins, labels); it now holds MOD13Q1 NDVI.
+"""
+import os
+from pathlib import Path
+
 import pandas as pd
 
 from src.data_pipeline.config import PARKS, TRAIN_START, TRAIN_END, DATA_RAW
@@ -8,29 +19,45 @@ from src.utils.logging_config import get_logger
 
 log = get_logger(__name__)
 
+_COLLECTION = "MODIS/061/MOD13Q1"
+_NDVI_SCALE = 0.0001   # MOD13Q1 NDVI is Int16 scaled by 1e-4
+
 
 def _init_gee(project: str = None) -> None:
+    """Initialise GEE with the service account from env (matches the backend), and
+    fall back to application-default / interactive auth if those are not set."""
     import ee
     try:
-        ee.Initialize(project=project)
+        from dotenv import load_dotenv
+        load_dotenv()
     except Exception:
-        ee.Authenticate()
-        ee.Initialize(project=project)
-
-
-def _mask_clouds_s2(image):
-    import ee
-    qa = image.select("QA60")
-    cloud_bit = 1 << 10
-    cirrus_bit = 1 << 11
-    mask = qa.bitwiseAnd(cloud_bit).eq(0).And(qa.bitwiseAnd(cirrus_bit).eq(0))
-    return image.updateMask(mask)
+        pass
+    project  = project or os.getenv("GEE_PROJECT", "") or None
+    sa_email = os.getenv("GEE_SERVICE_ACCOUNT", "")
+    key_file = os.getenv("GEE_KEY_FILE", "")
+    key_data = os.getenv("GEE_KEY_DATA", "")
+    if sa_email and key_data:
+        ee.Initialize(ee.ServiceAccountCredentials(sa_email, key_data=key_data), project=project)
+    elif sa_email and key_file and Path(key_file).exists():
+        ee.Initialize(ee.ServiceAccountCredentials(sa_email, key_file), project=project)
+    else:
+        try:
+            ee.Initialize(project=project)
+        except Exception:
+            ee.Authenticate()
+            ee.Initialize(project=project)
 
 
 def _add_ndvi(image):
+    """Scale NDVI to [-1, 1], keep only good/marginal-quality pixels, and preserve the
+    timestamp so `image.date()` still works after the transform.
+
+    MOD13Q1 SummaryQA: 0 good, 1 marginal, 2 snow/ice, 3 cloudy — keep 0 and 1.
+    """
     import ee
-    ndvi = image.normalizedDifference(["B8", "B4"]).rename("NDVI")
-    return image.addBands(ndvi)
+    good = image.select("SummaryQA").lte(1)
+    ndvi = image.select("NDVI").multiply(_NDVI_SCALE).updateMask(good).rename("NDVI")
+    return ee.Image(ndvi.copyProperties(image, ["system:time_start"]))
 
 
 def _extract_mean_ndvi(image, geometry):
@@ -38,7 +65,7 @@ def _extract_mean_ndvi(image, geometry):
     mean = image.select("NDVI").reduceRegion(
         reducer=ee.Reducer.mean(),
         geometry=geometry,
-        scale=500,
+        scale=250,
         maxPixels=1e9,
     )
     return ee.Feature(None, {
@@ -48,43 +75,30 @@ def _extract_mean_ndvi(image, geometry):
 
 
 def fetch_ndvi_year(park_key: str, year: int, geometry, project: str = None) -> pd.DataFrame:
-    """Fetch Sentinel-2 NDVI for one calendar year, one month at a time."""
+    """Fetch MOD13Q1 NDVI composites for one calendar year (about 23 per year)."""
     import ee
-    import calendar
-
-    all_records = []
-    for month in range(1, 13):
-        m_start = f"{year}-{month:02d}-01"
-        m_end = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]}"
-
-        collection = (
-            ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-            .filterBounds(geometry)
-            .filterDate(m_start, m_end)
-            .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 80))
-            .map(_mask_clouds_s2)
-            .map(_add_ndvi)
-        )
-
-        try:
-            data = collection.map(
-                lambda img: _extract_mean_ndvi(img, geometry)
-            ).getInfo()["features"]
-        except Exception as exc:
-            log.warning(f"  Skipped {year}-{month:02d}: {exc}")
-            continue
-
-        all_records.extend([
-            {"date": f["properties"]["date"], "ndvi_s2": f["properties"].get("ndvi_s2")}
-            for f in data
-            if f["properties"].get("ndvi_s2") is not None
-        ])
-
-    if not all_records:
-        log.warning(f"  No cloud-free Sentinel-2 observations for {park_key} in {year}")
+    collection = (
+        ee.ImageCollection(_COLLECTION)
+        .filterBounds(geometry)
+        .filterDate(f"{year}-01-01", f"{year}-12-31")
+        .map(_add_ndvi)
+    )
+    try:
+        data = collection.map(lambda img: _extract_mean_ndvi(img, geometry)).getInfo()["features"]
+    except Exception as exc:
+        log.warning(f"  Skipped {year}: {exc}")
         return pd.DataFrame(columns=["ndvi_s2"])
 
-    df = pd.DataFrame(all_records)
+    records = [
+        {"date": f["properties"]["date"], "ndvi_s2": f["properties"].get("ndvi_s2")}
+        for f in data
+        if f["properties"].get("ndvi_s2") is not None
+    ]
+    if not records:
+        log.warning(f"  No MOD13Q1 NDVI for {park_key} in {year}")
+        return pd.DataFrame(columns=["ndvi_s2"])
+
+    df = pd.DataFrame(records)
     df["date"] = pd.to_datetime(df["date"])
     df = df.groupby("date")["ndvi_s2"].mean().to_frame()
     df.index.name = "date"
@@ -106,9 +120,7 @@ def fetch_and_save_ndvi(
         log.info(f"NDVI already cached for {park_key} — loading from {out_path}")
         return pd.read_csv(out_path, index_col="date", parse_dates=True)
 
-    log.info(f"Fetching Sentinel-2 NDVI for {park_key} ({start_year}–{end_year})...")
-    log.info("  This may take several minutes. GEE processes one year at a time.")
-
+    log.info(f"Fetching MOD13Q1 NDVI for {park_key} ({start_year}-{end_year})...")
     _init_gee(project)
     park = PARKS[park_key]
     bbox = park["bbox"]
@@ -121,8 +133,7 @@ def fetch_and_save_ndvi(
     for year in range(start_year, end_year + 1):
         log.info(f"  Processing {year}...")
         try:
-            chunk = fetch_ndvi_year(park_key, year, geometry, project)
-            chunks.append(chunk)
+            chunks.append(fetch_ndvi_year(park_key, year, geometry, project))
         except Exception as exc:
             log.warning(f"  Skipped {year}: {exc}")
 
@@ -134,5 +145,5 @@ def fetch_and_save_ndvi(
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_path)
-    log.info(f"Saved NDVI data → {out_path} ({len(df)} observations)")
+    log.info(f"Saved NDVI data -> {out_path} ({len(df)} observations)")
     return df
