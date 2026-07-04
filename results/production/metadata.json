@@ -1,43 +1,43 @@
 {
   "version": "1.0.0",
   "model_key": "rf_self",
-  "training_date": "2026-06-01",
+  "training_date": "2026-07-04",
   "threats": [
     "fire_within_30d",
     "drought_within_30d",
     "vegetation_within_30d"
   ],
-  "mean_f2": 0.8575,
+  "mean_f2": 0.8772,
   "per_threat": {
     "fire_within_30d": {
-      "f2": 0.942,
+      "f2": 0.9457,
       "f2_ci": [
-        0.9349,
-        0.9491
+        0.9388,
+        0.952
       ],
-      "roc_auc": 0.9769,
-      "recall": 0.9574,
-      "precision": 0.8851
+      "roc_auc": 0.9778,
+      "recall": 0.9622,
+      "precision": 0.8848
     },
     "drought_within_30d": {
-      "f2": 0.8849,
+      "f2": 0.8249,
       "f2_ci": [
-        0.8671,
-        0.9013
+        0.8013,
+        0.8477
       ],
-      "roc_auc": 0.9671,
-      "recall": 0.941,
-      "precision": 0.7146
+      "roc_auc": 0.9647,
+      "recall": 0.8647,
+      "precision": 0.6964
     },
     "vegetation_within_30d": {
-      "f2": 0.7455,
+      "f2": 0.8612,
       "f2_ci": [
-        0.7294,
-        0.7624
+        0.8428,
+        0.8788
       ],
-      "roc_auc": 0.7736,
-      "recall": 0.7863,
-      "precision": 0.6175
+      "roc_auc": 0.9771,
+      "recall": 0.8336,
+      "precision": 0.9923
     }
   },
   "hyperparameters": {
