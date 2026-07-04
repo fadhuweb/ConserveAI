@@ -80,8 +80,8 @@ def add_drought_label(df: pd.DataFrame, park_key: str) -> pd.DataFrame:
 
 
 def add_vegetation_label(df: pd.DataFrame) -> pd.DataFrame:
-    # Forward-fill NDVI up to 7 days (PDF feature engineering spec)
-    ndvi = df["ndvi_s2"].ffill(limit=7)
+    # MOD13Q1 is a 16-day composite; carry each value forward across its window.
+    ndvi = df["ndvi_s2"].ffill(limit=16)
 
     ndvi_90d_avg = ndvi.rolling(NDVI_WINDOW, min_periods=NDVI_WINDOW // 3).mean()
     ndvi_deviation = ndvi - ndvi_90d_avg

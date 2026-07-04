@@ -75,7 +75,9 @@ def _engineer_park(df: pd.DataFrame, park_key: str) -> pd.DataFrame:
     )
 
     # ── Satellite ─────────────────────────────────────────────────────────────
-    ndvi_filled = df["ndvi_s2"].ffill(limit=7)
+    # MOD13Q1 is a 16-day composite, so carry each value forward across its window
+    # (the old limit of 7 was tuned for Sentinel-2's ~5-day revisit).
+    ndvi_filled = df["ndvi_s2"].ffill(limit=16)
 
     df["ndvi"]         = ndvi_filled
     df["ndvi_missing"] = ndvi_filled.isna().astype(int)
