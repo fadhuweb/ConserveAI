@@ -259,7 +259,7 @@ def _compute_features(history: pd.DataFrame, park: str, target_date: date) -> np
     fire     = df["firms_count"].fillna(0)
 
     # NDVI forward-fill up to 7 days then treat as missing
-    ndvi_filled = ndvi_raw.ffill(limit=7)
+    ndvi_filled = ndvi_raw.ffill(limit=16)   # MOD13Q1 16-day composite cadence (matches training)
 
     row = {}
 

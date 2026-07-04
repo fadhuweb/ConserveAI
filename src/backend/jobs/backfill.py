@@ -124,7 +124,7 @@ def _compute_features(history: pd.DataFrame, park: str, target_date: date) -> np
     temp_max    = df["temp_max"]
     ndvi_raw    = df["ndvi"]
     fire        = df["firms_count"].fillna(0)
-    ndvi_filled = ndvi_raw.ffill(limit=7)
+    ndvi_filled = ndvi_raw.ffill(limit=16)   # MOD13Q1 16-day composite cadence (matches training)
 
     row = {}
     row["rain_7d"]          = float(precip.rolling(7,  min_periods=1).sum().iloc[-1])
