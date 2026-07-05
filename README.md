@@ -163,7 +163,7 @@ Run the automated test suite from the project root:
 python -m pytest tests/ -v
 ```
 
-17 unit tests pass, covering the ILP optimiser (budget, capacity, type toggles, urgency floors) and authentication (bcrypt hashing, password policy, JWT access / reset tokens). The full testing record — unit tests, model evaluation on a held-out 2024–2025 test set (Fire F2 0.94, Drought 0.89, Vegetation 0.75), API / integration tests, different-data-value runs, and performance across local and cloud — is in **[`docs/TESTING.md`](docs/TESTING.md)**.
+19 unit tests pass, covering the ILP optimiser (budget, capacity, type toggles, urgency floors, recommendation rationale) and authentication (bcrypt hashing, password policy, JWT access / reset tokens). The full testing record — unit tests, model evaluation on a held-out 2024–2025 test set (Fire F2 0.95, Drought 0.83, Vegetation 0.86), API / integration tests, different-data-value runs, and performance across local and cloud — is in **[`docs/TESTING.md`](docs/TESTING.md)**.
 
 ---
 
@@ -190,7 +190,7 @@ Production behaviour is gated on `ENVIRONMENT=production`: the auth cookie becom
 
 ## Video demo
 
-https://drive.google.com/file/d/13hFM-HJQQouwi9S0ZQP2i-dPRxxds7mD/view?usp=sharing
+https://drive.google.com/file/d/1mZziLe36QYS3TXh2ZXmO8vQCw-OKjNTA/view?usp=drivesdk
 
 ---
 

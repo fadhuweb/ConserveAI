@@ -47,19 +47,23 @@ Result: `17 passed`.
 
 ### 1.2 Model evaluation on held-out data
 The model was trained on 2020 to 2023 and evaluated on a temporally separate
-2024 to 2025 test set (n = 3,812 park-day rows it never saw during training).
+2024 to 2025 test set (n = 4,206 park-day rows it never saw during training).
 F2 is the primary metric because missing a real threat is worse than a false alarm.
+These figures are for the current model, which sources NDVI from the cloud-composited
+MODIS MOD13Q1 product (see the vegetation note in `ANALYSIS.md`).
 
 | Threat | F2 | Persistence F2 (baseline) | ROC-AUC | Precision | Recall |
 |---|---|---|---|---|---|
-| Fire | 0.942 | 0.780 | 0.977 | 0.885 | 0.957 |
-| Drought | 0.885 | 0.399 | 0.967 | 0.715 | 0.941 |
-| Vegetation | 0.746 | 0.480 | 0.774 | 0.617 | 0.786 |
+| Fire | 0.946 | 0.780 | 0.978 | 0.885 | 0.962 |
+| Drought | 0.825 | 0.354 | 0.965 | 0.696 | 0.865 |
+| Vegetation | 0.861 | 0.708 | 0.977 | 0.992 | 0.834 |
 
 The persistence baseline (the naive forecast that assumes the next 30 days resemble the
-last 30) is the minimum useful-forecast bar. The model clears it on every threat, most
-decisively on drought (0.885 vs 0.399). Fire and drought are strong; vegetation is
-moderate, which the analysis discusses.
+last 30) is the minimum useful-forecast bar. The model clears it on every threat. Fire
+and vegetation are strong. Drought ranks risk just as well (ROC-AUC 0.965) but its F2 is
+lower at the fixed 0.5 threshold; at its best threshold drought F2 recovers to about 0.86,
+so this is an operating-point effect rather than lost skill. Vegetation ROC-AUC rose from
+0.77 to 0.98 once the earlier rainy-season NDVI collapse was fixed.
 
 ![Model evaluation metrics on the held-out test set](screenshots/model_metrics.png)
 *Held-out 2024-2025 test metrics for the production model.*
@@ -172,7 +176,7 @@ single column on small screens.
 | Strategy | Outcome |
 |---|---|
 | Unit tests (pytest) | 17 / 17 pass |
-| Model evaluation (held-out 2024-2025) | Fire F2 0.94, Drought F2 0.89, Vegetation F2 0.75 |
+| Model evaluation (held-out 2024-2025) | Fire F2 0.95, Drought F2 0.83, Vegetation F2 0.86 (ROC-AUC 0.98) |
 | Integration / API | All endpoints behave as specified, including auth and the job token |
 | End-to-end (browser) | Full journey works on the deployed site |
 | Different data values | Recommender scales with budget and stays within it; per-park forecasts differ |

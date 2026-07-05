@@ -9,12 +9,18 @@ what the milestones mean, and gives recommendations and future work.
 The proposal set out to forecast three threats over a 30-day window for six parks:
 fire, drought, and vegetation degradation. The project met this objective. The
 deployed model produces daily forecasts for all six parks. On a held-out 2024 to
-2025 test set the model scored an F2 of 0.94 for fire, 0.89 for drought, and 0.75
-for vegetation. The fire and drought results are strong. Vegetation is weaker, which
-the discussion examines. Measured against a persistence baseline, the naive forecast
-that the next 30 days resemble the last 30, the model wins on every threat, and by a
-wide margin on drought (F2 0.89 versus 0.40) and fire (0.94 versus 0.78). It is
-therefore learning real structure rather than repeating recent history.
+2025 test set the model scored an F2 of 0.95 for fire, 0.83 for drought, and 0.86
+for vegetation, with ROC-AUC above 0.96 on all three. Fire and vegetation are strong.
+Drought ranks risk just as well (ROC-AUC 0.965) but its F2 sits lower at the fixed 0.5
+threshold; at its best threshold it recovers to about 0.86, so the gap is an
+operating-point effect rather than lost skill. Measured against a persistence baseline,
+the naive forecast that the next 30 days resemble the last 30, the model wins on every
+threat, so it is learning real structure rather than repeating recent history.
+
+Vegetation reached this level only after the limitation described below was fixed. The
+first deployed model collapsed to a near-constant vegetation output because its optical
+NDVI was cloud-blocked in the rainy season; moving to the cloud-composited MODIS MOD13Q1
+source and retraining raised vegetation ROC-AUC from 0.77 to 0.98.
 
 The proposal also called for a comparison of eight model configurations: Random
 Forest, XGBoost, LSTM, and Transformer, each in a supervised and a semi-supervised
@@ -78,17 +84,26 @@ limitation. The drought and vegetation evaluation therefore measures consistency
 with the data the labels came from in part, rather than against a fully independent
 ground truth.
 
-Vegetation forecasting is the weakest part of the system, and a live observation
-sharpened why. Vegetation risk is driven by NDVI, an optical satellite index, and two
-problems compound. First, the model was trained on Sentinel-2 NDVI, but the live
-pipeline reads NDVI from MODIS, a different sensor, so inference sees a source the
-model did not learn on. Second, optical NDVI is blocked by cloud, and during the
-rainy season the daily source is unavailable for most parks, so the vegetation input
-falls back to an imputed value. When that happens the vegetation forecast collapses to
-a near-constant output: on 30 June 2026, five of the six parks returned an identical
-vegetation probability of 0.53, and only the arid Sahel park, Chad Basin, which keeps
-clear-sky NDVI, differed. The vegetation figures should therefore be read with low
-confidence during cloudy periods.
+Vegetation forecasting was the weakest part of the system, and a live observation
+sharpened why, before it was fixed. Vegetation risk is driven by NDVI, an optical
+satellite index, and two problems compounded. First, the model had been trained on
+Sentinel-2 NDVI while the live pipeline read NDVI from MODIS, a different sensor, so
+inference saw a source the model had not learned on. Second, optical NDVI is blocked by
+cloud, and during the rainy season the daily source was unavailable for most parks, so
+the vegetation input fell back to an imputed value. When that happened the vegetation
+forecast collapsed to a near-constant output: on 30 June 2026, five of the six parks
+returned an identical vegetation probability of 0.53, and only the arid Sahel park,
+Chad Basin, which keeps clear-sky NDVI, differed.
+
+This has since been resolved. Both the training and the live serving pipeline were moved
+onto one cloud-robust source, the 16-day MODIS MOD13Q1 composite, which removes both the
+sensor mismatch and the cloud gaps. The model was retrained and re-validated, the
+production database was migrated, and the fix was redeployed. Vegetation now varies
+properly across parks and seasons instead of collapsing, and its held-out ROC-AUC rose
+from 0.77 to 0.98. One caveat remains: the vegetation label is still derived from NDVI,
+the same signal the features use, so the absolute score carries the label-leakage caveat
+above; the genuine gain is that the forecast is no longer degenerate and now
+discriminates.
 
 The threat set follows what free satellite and climate data can measure. It does not
 cover the threats the proposal itself identifies as central to Nigerian parks, such
@@ -126,14 +141,13 @@ apply local knowledge, especially for the threats the model does not cover.
 
 Future work follows from the limitations.
 
-- Move vegetation onto a cloud-robust NDVI source and align training with serving.
-  Replace the daily optical NDVI with a cloud-composited product (the 16-day MODIS
-  MOD13Q1, which keeps the best clear pixel per window) as the primary signal, and add
-  Sentinel-1 radar, which sees through cloud, as a backup for days optical fails.
-  Rebuild the training data on the same source the live system serves so the model no
-  longer faces a sensor mismatch, then retrain and re-validate. Impute any remaining
-  gaps with each park's seasonal NDVI baseline rather than a global default, and mark
-  the vegetation forecast low-confidence when coverage is poor.
+- Cloud-robust vegetation sensing (done, with extensions remaining). The core of this
+  was implemented after submission: both training and serving now use the 16-day MODIS
+  MOD13Q1 composite, which removed the sensor mismatch and the cloud gaps, and the model
+  was retrained, the database migrated, and the fix redeployed (vegetation ROC-AUC rose
+  from 0.77 to 0.98). Remaining extensions: add Sentinel-1 radar as a cloud-independent
+  backup, impute any residual gaps with each park's seasonal NDVI baseline rather than a
+  global default, and flag the vegetation forecast low-confidence when coverage is poor.
 - Replace the climate-derived drought and vegetation labels with independent ground
   truth to remove the label leakage.
 - Add deployment logging so the system tracks actual unit use against the 30-day
