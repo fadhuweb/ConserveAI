@@ -1,11 +1,13 @@
 // Shared risk-level helpers used by the overview and park-detail screens.
 
-// Small risks are real: a 0.3% drought probability must not render as "0%", and
-// six parks at 0.9% must not all collapse to an identical "1%". So show one decimal
-// below 10% (0.3%, 0.9%, 5.6%) and whole numbers above (54%, 93%).
+// A tiny risk is real but imprecise: the model does not meaningfully distinguish
+// 0.3% from 0.9% at the low end, so claiming one decimal there is false precision.
+// Show "<1%" for anything positive under 1% (honest: non-zero but very low, not "0%"),
+// one decimal for the 1-10% band where the gap is meaningful, and whole numbers above.
 export const pct = (p) => {
   const v = (p ?? 0) * 100;
   if (v <= 0) return "0%";
+  if (v < 1) return "<1%";
   if (v < 10) return `${v.toFixed(1)}%`;
   return `${Math.round(v)}%`;
 };
