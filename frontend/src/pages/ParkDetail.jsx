@@ -80,7 +80,7 @@ export default function ParkDetail() {
     setError("");
     Promise.all([
       getPark(parkId),
-      getForecasts(parkId, 60, "asc"),
+      getForecasts(parkId, 365, "asc"),
       getZones(parkId),
       getDrivers(parkId),
     ])
@@ -336,7 +336,7 @@ export default function ParkDetail() {
           </div>
 
           {/* ── Supporting evidence — why the model says this ── */}
-          <Card title={`Forecast history${focus ? ` — ${focus}` : " (last 60 days)"}`} style={{ marginBottom: 16 }}>
+          <Card title={`Forecast history${focus ? ` — ${focus}` : " (last 12 months)"}`} style={{ marginBottom: 16 }}>
             <ForecastChart forecasts={forecasts} focus={focus} />
           </Card>
 
