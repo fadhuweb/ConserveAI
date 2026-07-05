@@ -72,3 +72,6 @@ secrets/
 gee-key.json
 
 DEMO_SCRIPT.md
+# migration backups (local only)
+results/production_s2_backup/
+results/models/rf_self_s2_backup/
