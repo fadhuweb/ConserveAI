@@ -5,8 +5,10 @@ import {
   DashboardOutlined, TeamOutlined, AppstoreOutlined,
   SettingOutlined, LogoutOutlined, MenuOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined, SafetyCertificateFilled,
+  FileProtectOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../auth/AuthContext";
+import TermsGate from "./TermsGate";
 
 // Dashboard shell: left sidebar nav + top header bar + content area.
 // Wraps the authenticated screens (National Overview, Park Detail).
@@ -43,15 +45,18 @@ export default function AppShell({ subtitle, children }) {
         { label: "Park Managers", icon: <TeamOutlined />, onClick: () => go("/managers"), active: pathname === "/managers" },
         { label: "Interventions", icon: <AppstoreOutlined />, onClick: () => go("/interventions"), active: pathname === "/interventions" },
         { label: "Settings", icon: <SettingOutlined />, onClick: () => go("/settings"), active: pathname === "/settings" },
+        { label: "Legal", icon: <FileProtectOutlined />, onClick: () => go("/legal"), active: pathname === "/legal" },
       ]
     : [
         { label: "My Park", icon: <DashboardOutlined />, onClick: () => go(home), active: pathname === home },
         { label: "Interventions", icon: <AppstoreOutlined />, onClick: () => go("/interventions"), active: pathname === "/interventions" },
         { label: "Settings", icon: <SettingOutlined />, onClick: () => go("/settings"), active: pathname === "/settings" },
+        { label: "Legal", icon: <FileProtectOutlined />, onClick: () => go("/legal"), active: pathname === "/legal" },
       ];
 
   return (
     <div className="shell">
+      <TermsGate username={user?.username} />
       <aside className={`sidebar ${open ? "open" : ""} ${collapsed ? "collapsed" : ""}`}>
         <div className="sidebar-brand">
           <div className="brand-id" onClick={() => { navigate(home); setOpen(false); }}>

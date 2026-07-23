@@ -113,6 +113,13 @@ export default function LoginPage() {
             </Button>
             <div className="forgot-link" onClick={() => navigate('/forgot-password')}>Forgot password?</div>
           </Form>
+          <Text
+            className="sub"
+            style={{ display: "block", textAlign: "center", marginTop: 20, cursor: "pointer" }}
+            onClick={() => navigate('/legal')}
+          >
+            Terms of Use &amp; Privacy Policy
+          </Text>
         </div>
       </main>
     </div></div>

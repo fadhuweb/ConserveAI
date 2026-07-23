@@ -10,6 +10,7 @@ import ParkDetail from "./pages/ParkDetail";
 import Managers from "./pages/Managers";
 import Interventions from "./pages/Interventions";
 import Settings from "./pages/Settings";
+import Legal from "./pages/Legal";
 
 // Sends a logged-in user to their role's home, or to login otherwise.
 function Home() {
@@ -26,6 +27,7 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/change-password" element={<ChangePassword />} />
+      <Route path="/legal" element={<Legal />} />
       <Route
         path="/national"
         element={<ProtectedRoute role="admin"><NationalOverview /></ProtectedRoute>}

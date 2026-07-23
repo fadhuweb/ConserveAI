@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { Card, Tag, Skeleton, Alert } from "antd";
+import { useNavigate } from "react-router-dom";
+import { Card, Tag, Skeleton, Alert, Typography } from "antd";
 import {
-  PhoneOutlined, IdcardOutlined, EnvironmentOutlined,
+  PhoneOutlined, IdcardOutlined, EnvironmentOutlined, FileProtectOutlined,
 } from "@ant-design/icons";
 import AppShell from "../components/AppShell";
 import * as authApi from "../api/auth";
 import { getParks } from "../api/forecasts";
 
 export default function Settings() {
+  const navigate = useNavigate();
   const [me, setMe] = useState(null);
   const [parks, setParks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +80,13 @@ export default function Settings() {
           </div>
         )}
       </Card>
+
+      <Typography.Paragraph style={{ maxWidth: 980, marginTop: 16 }}>
+        <Typography.Link onClick={() => navigate("/legal")}>
+          <FileProtectOutlined style={{ marginRight: 6 }} />
+          Terms of Use and Privacy Policy
+        </Typography.Link>
+      </Typography.Paragraph>
     </AppShell>
   );
 }
