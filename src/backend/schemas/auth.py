@@ -47,6 +47,7 @@ class UserOut(BaseModel):
     phone: str | None
     must_change_password: bool
     is_active: bool = True
+    terms_accepted: bool = False
 
     model_config = {"from_attributes": True}
 

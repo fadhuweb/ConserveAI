@@ -6,6 +6,9 @@ export const login = (username, password) =>
 export const logout = () =>
   client.post("/auth/logout").then((r) => r.data);
 
+export const acceptTerms = () =>
+  client.post("/auth/accept-terms").then((r) => r.data);
+
 export const changePassword = (current_password, new_password) =>
   client.post("/auth/change-password", { current_password, new_password }).then((r) => r.data);
 

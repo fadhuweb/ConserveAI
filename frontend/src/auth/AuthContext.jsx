@@ -23,7 +23,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (user && user.full_name === undefined) {
       authApi.getMe()
-        .then((me) => persist({ ...user, full_name: me.full_name || null }))
+        .then((me) => persist({ ...user, full_name: me.full_name || null, terms_accepted: me.terms_accepted }))
         .catch(() => persist({ ...user, full_name: null }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -50,8 +50,14 @@ export function AuthProvider({ children }) {
     if (user) persist({ ...user, must_change_password: false });
   };
 
+  // Record Terms acceptance server-side, then reflect it locally so the gate closes.
+  const acceptTerms = async () => {
+    await authApi.acceptTerms();
+    if (user) persist({ ...user, terms_accepted: true });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, clearMustChange }}>
+    <AuthContext.Provider value={{ user, login, logout, clearMustChange, acceptTerms }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SAEnum
 from src.backend.database import Base
 
 
@@ -28,3 +28,11 @@ class User(Base):
 
     # Admins can deactivate an account to block sign-in without deleting its history.
     is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+
+    # Timestamp of when the user accepted the Terms of Use / Privacy Policy.
+    # Null means not yet accepted; set once on first login via /auth/accept-terms.
+    terms_accepted_at = Column(DateTime, nullable=True)
+
+    @property
+    def terms_accepted(self) -> bool:
+        return self.terms_accepted_at is not None

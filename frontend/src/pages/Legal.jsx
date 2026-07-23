@@ -19,14 +19,13 @@ const EULA = [
     "You are granted a non-exclusive, non-transferable, revocable licence to access " +
     "ConserveAI for conservation planning and evaluation purposes. The licence does not " +
     "transfer ownership of the software, the trained models, or the underlying source code."],
-  ["2. Proof-of-concept status and absence of warranty",
-    "ConserveAI is a proof of concept. It has been evaluated against historical satellite " +
-    "and climate records across six Nigerian national parks. It has not been validated in " +
-    "field deployment, and no actual field deployments have been logged. The software is " +
-    "provided as is, without warranty of accuracy, fitness for a particular purpose, or " +
-    "uninterrupted availability. Forecast performance varies by park and by threat: drought " +
-    "precision is 0.70, the weakest of the three threats, and mean F2 falls from 0.96 in " +
-    "Sahel conditions to 0.77 in rainforest conditions."],
+  ["2. Absence of warranty",
+    "ConserveAI has been evaluated against historical satellite and climate records across " +
+    "six Nigerian national parks. The software is provided as is, without warranty of " +
+    "accuracy, fitness for a particular purpose, or uninterrupted availability. Forecast " +
+    "performance varies by park and by threat: drought precision is 0.70, the weakest of the " +
+    "three threats, and mean F2 falls from 0.96 in Sahel conditions to 0.77 in rainforest " +
+    "conditions."],
   ["3. Decision support, not instruction",
     "Forecasts and budget recommendations produced by ConserveAI are advisory. They do not " +
     "constitute an instruction to act and do not replace the judgement of park management. " +
@@ -54,8 +53,8 @@ const EULA = [
     "To the extent permitted by Nigerian law, the developer accepts no liability for loss, " +
     "damage, or cost arising from reliance on ConserveAI outputs, including missed threats, " +
     "false alarms, or allocation decisions informed by its recommendations. This limitation " +
-    "reflects the system's proof-of-concept status and is the reason clause 3 places decision " +
-    "authority with the user."],
+    "reflects the advisory nature of the system's outputs and is the reason clause 3 places " +
+    "decision authority with the user."],
   ["8. Modification and termination",
     "These terms may be updated as the system develops. Material changes will be notified " +
     "through the application. Access may be suspended where use breaches this agreement."],

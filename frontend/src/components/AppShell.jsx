@@ -56,7 +56,7 @@ export default function AppShell({ subtitle, children }) {
 
   return (
     <div className="shell">
-      <TermsGate username={user?.username} />
+      <TermsGate />
       <aside className={`sidebar ${open ? "open" : ""} ${collapsed ? "collapsed" : ""}`}>
         <div className="sidebar-brand">
           <div className="brand-id" onClick={() => { navigate(home); setOpen(false); }}>

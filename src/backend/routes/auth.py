@@ -1,4 +1,5 @@
 import secrets
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
@@ -144,6 +145,18 @@ def create_user(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.post("/accept-terms", response_model=UserOut,
+             summary="Record that the current user accepted the Terms of Use / Privacy Policy")
+def accept_terms(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Stamp the acceptance time on the account. Idempotent: re-accepting keeps the
+    original timestamp, so the first acceptance is the one on record."""
+    if current_user.terms_accepted_at is None:
+        current_user.terms_accepted_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(current_user)
+    return current_user
 
 
 @router.post("/change-password", summary="Change your password (clears the forced-change flag)")
