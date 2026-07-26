@@ -211,3 +211,4 @@ Dockerfile, fly.toml          backend deployment (Fly.io)
 frontend/vercel.json          frontend deployment (Vercel SPA routing)
 .github/workflows/            daily-forecast cron (GitHub Actions)
 ```
+
