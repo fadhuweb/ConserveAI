@@ -151,7 +151,9 @@ def forecast_drivers(
         "firms_count":   r.firms_count or 0,
     } for r in daily])
 
-    drivers = compute_drivers(history, park, fc.date)
+    from src.backend.jobs.daily_forecast import last_fire_date
+    lfd = last_fire_date(db, park, fc.date)
+    drivers = compute_drivers(history, park, fc.date, last_fire_date=lfd)
     return DriversResponse(park=park, date=str(fc.date), probs=probs, drivers=drivers)
 
 

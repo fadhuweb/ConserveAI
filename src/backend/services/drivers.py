@@ -55,9 +55,12 @@ def _impact(feat, value, direction):
     return "lowers"
 
 
-def compute_drivers(history: pd.DataFrame, park: str, target_date) -> dict:
-    """Return {threat: [{label, value, impact}, ...]} for the latest feature row."""
-    feats = _compute_features(history, park, target_date)[0]
+def compute_drivers(history: pd.DataFrame, park: str, target_date, last_fire_date=None) -> dict:
+    """Return {threat: [{label, value, impact}, ...]} for the latest feature row.
+
+    `last_fire_date` (the real last fire from full history) is threaded through so the
+    'Days since last fire' driver counts from the true last fire, not the 90-day window."""
+    feats = _compute_features(history, park, target_date, last_fire_date=last_fire_date)[0]
     fdict = dict(zip(FEATURE_COLS, feats))
 
     drivers = {}

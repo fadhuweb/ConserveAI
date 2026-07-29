@@ -114,7 +114,8 @@ def _safe(val):
 
 # ── Step 2: run inference on last N days ──────────────────────────────────────
 
-def _compute_features(history: pd.DataFrame, park: str, target_date: date) -> np.ndarray:
+def _compute_features(history: pd.DataFrame, park: str, target_date: date,
+                      last_fire_date=None) -> np.ndarray:
     cfg = PARKS_CONFIG[park]
     df  = history.sort_values("date").copy()
     df["date"] = pd.to_datetime(df["date"])
@@ -147,9 +148,16 @@ def _compute_features(history: pd.DataFrame, park: str, target_date: date) -> np
 
     row["fire_30d"]         = float(fire.rolling(30, min_periods=1).sum().iloc[-1])
     row["fire_90d"]         = float(fire.rolling(90, min_periods=1).sum().iloc[-1])
-    fire_detected           = fire > 0
-    last_fire               = df.index[fire_detected].max() if fire_detected.any() else None
-    row["days_since_fire"]  = float(min((pd.Timestamp(target_date) - last_fire).days, 365)) if last_fire else 365.0
+    # days_since_fire counts from the true last fire (full history), capped at 365 to
+    # match training. Falls back to the 90-day window only if no full-history date given.
+    if last_fire_date is None:
+        fire_detected  = fire > 0
+        last_fire_date = df.index[fire_detected].max() if fire_detected.any() else None
+    if last_fire_date is not None:
+        gap = (pd.Timestamp(target_date) - pd.Timestamp(last_fire_date)).days
+        row["days_since_fire"] = float(min(max(gap, 0), 365))
+    else:
+        row["days_since_fire"] = 365.0
 
     doy                     = pd.Timestamp(target_date).dayofyear
     row["doy_sin"]          = float(np.sin(2 * np.pi * doy / 365.25))
@@ -208,6 +216,15 @@ def run_backfill(days: int = 60):
                 "firms_count":   r.firms_count or 0,
             } for r in rows])
 
+            # Full-history fire dates (ascending), so days_since_fire can count from
+            # the true last fire even when it predates the 90-day context window.
+            fire_dates = [
+                d for (d,) in db.query(DailyFeatures.date)
+                .filter(DailyFeatures.park == park, DailyFeatures.firms_count > 0)
+                .order_by(DailyFeatures.date)
+                .all()
+            ]
+
             current = start
             while current <= end:
                 # Skip if forecast already exists
@@ -223,7 +240,13 @@ def run_backfill(days: int = 60):
                     continue
 
                 try:
-                    X     = _compute_features(history, park, current)
+                    # most recent fire on/before `current` from full history
+                    lfd = None
+                    for fd in reversed(fire_dates):
+                        if fd <= current:
+                            lfd = fd
+                            break
+                    X     = _compute_features(history, park, current, last_fire_date=lfd)
                     X_imp = imputer.transform(pd.DataFrame(X, columns=FEATURE_COLS))
                     raw_p = np.column_stack([p[:, 1] for p in model.predict_proba(X_imp)])
 

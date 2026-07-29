@@ -246,8 +246,16 @@ def _get_ndvi(park: str, target_date: date, db) -> Optional[float]:
 
 # ── Feature engineering ───────────────────────────────────────────────────────
 
-def _compute_features(history: pd.DataFrame, park: str, target_date: date) -> np.ndarray:
-    """Given 90 days of raw history, compute the 20 model features for target_date."""
+def _compute_features(history: pd.DataFrame, park: str, target_date: date,
+                      last_fire_date: Optional[date] = None) -> np.ndarray:
+    """Given 90 days of raw history, compute the 20 model features for target_date.
+
+    `last_fire_date` is the most recent fire-detection date from the FULL history
+    (not just the 90-day window). Pass it so days_since_fire matches training, which
+    counts from the true last fire and caps at 365. Without it, the value would
+    collapse to 365 whenever the last fire is older than the 90-day window (which is
+    the case for every park through the entire rainy season).
+    """
     cfg = PARKS_CONFIG[park]
     df  = history.sort_values("date").copy()
     df["date"] = pd.to_datetime(df["date"])
@@ -284,9 +292,17 @@ def _compute_features(history: pd.DataFrame, park: str, target_date: date) -> np
     # Fire
     row["fire_30d"]         = float(fire.rolling(30, min_periods=1).sum().iloc[-1])
     row["fire_90d"]         = float(fire.rolling(90, min_periods=1).sum().iloc[-1])
-    fire_detected           = fire > 0
-    last_fire               = df.index[fire_detected].max() if fire_detected.any() else None
-    row["days_since_fire"]  = float(min((pd.Timestamp(target_date) - last_fire).days, 365)) if last_fire else 365.0
+    # days_since_fire: count from the true last fire (full history), capped at 365 to
+    # match training. Fall back to the 90-day window only if no full-history date was
+    # supplied, and to 365 if there has never been a detected fire.
+    if last_fire_date is None:
+        fire_detected  = fire > 0
+        last_fire_date = df.index[fire_detected].max() if fire_detected.any() else None
+    if last_fire_date is not None:
+        gap = (pd.Timestamp(target_date) - pd.Timestamp(last_fire_date)).days
+        row["days_since_fire"] = float(min(max(gap, 0), 365))
+    else:
+        row["days_since_fire"] = 365.0
 
     # Context
     doy                     = pd.Timestamp(target_date).dayofyear
@@ -300,6 +316,24 @@ def _compute_features(history: pd.DataFrame, park: str, target_date: date) -> np
 
 
 # ── Main job ──────────────────────────────────────────────────────────────────
+
+def last_fire_date(db, park: str, on_or_before: date) -> Optional[date]:
+    """Most recent date this park had a detected fire, from the full history.
+
+    Used for days_since_fire so it counts from the real last fire even when that is
+    older than the 90-day feature window (true for every park all rainy season)."""
+    from sqlalchemy import func
+    from src.backend.models.raw_features import DailyFeatures
+    return (
+        db.query(func.max(DailyFeatures.date))
+        .filter(
+            DailyFeatures.park == park,
+            DailyFeatures.firms_count > 0,
+            DailyFeatures.date <= on_or_before,
+        )
+        .scalar()
+    )
+
 
 def _process_park(park: str, target_date: date, artefact: dict) -> Optional[dict]:
     """Fetch, compute features, and run inference for one park. Returns result dict or None."""
@@ -358,7 +392,8 @@ def _process_park(park: str, target_date: date, artefact: dict) -> Optional[dict
             )
             return None
 
-        X      = _compute_features(history, park, target_date)
+        X      = _compute_features(history, park, target_date,
+                                   last_fire_date=last_fire_date(db, park, target_date))
         X_imp  = imputer.transform(pd.DataFrame(X, columns=FEATURE_COLS))
         raw_p  = np.column_stack([p[:, 1] for p in model.predict_proba(X_imp)])
 
