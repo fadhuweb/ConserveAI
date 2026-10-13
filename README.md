@@ -163,7 +163,7 @@ Run the automated test suite from the project root:
 python -m pytest tests/ -v
 ```
 
-19 unit tests pass, covering the ILP optimiser (budget, capacity, type toggles, urgency floors, recommendation rationale) and authentication (bcrypt hashing, password policy, JWT access / reset tokens). The full testing record — unit tests, model evaluation on a held-out 2024–2025 test set (Fire F2 0.95, Drought 0.83, Vegetation 0.86), API / integration tests, different-data-value runs, and performance across local and cloud — is in **[`docs/TESTING.md`](docs/TESTING.md)**.
+17 unit tests pass, covering the ILP optimiser (budget, capacity, type toggles, urgency floors, recommendation rationale) and authentication (bcrypt hashing, password policy, JWT access / reset tokens). The full testing record — unit tests, model evaluation on a held-out 2024–2025 test set (Fire F2 0.95, Drought 0.83, Vegetation 0.86), API / integration tests, different-data-value runs, and performance across local and cloud — is in **[`docs/TESTING.md`](docs/TESTING.md)**.
 
 ---
 
